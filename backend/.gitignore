@@ -4,3 +4,9 @@ venv/
 
 # Python
 __pycache__/
+
+# Sqlite database file
+*.db
+*.sqlite3
+
+test.py

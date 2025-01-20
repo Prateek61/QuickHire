@@ -1,2 +1,4 @@
 # Fastapi
 fastapi[standard]
+psycopg2
+marshmallow # for serialization
