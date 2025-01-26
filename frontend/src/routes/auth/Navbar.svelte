@@ -1,13 +1,18 @@
 <script>
     import favicon from "$lib/images/favicon.png"
 
+    import { LightSwitch } from "@skeletonlabs/skeleton";
+
 	export let isAuthenticated = false;
 </script>
 
 <nav class="flex justify-between items-center bg-gradient-to-r from-teal-400 via-blue-500 to-purple-600 text-white p-4 shadow-lg">
 	<div class="flex items-center space-x-4">
+        <!-- <LightSwitch /> -->
+		<a href="/professionals" class="flex items-center space-x-2">
 		<img src={favicon} alt="QuickHire Logo" class="w-10 h-10 rounded-full shadow-md">
 		<span class="text-2xl font-extrabold tracking-wide">QuickHire</span>
+		</a>
 	</div>
 	<ul class="flex space-x-6 text-lg">
 		{#if isAuthenticated}

@@ -2,5 +2,9 @@
     import Navbar from "./Navbar.svelte"
 </script>
 
-<Navbar isAuthenticated={false}/>
-<slot />
+<header>
+    <Navbar isAuthenticated={false}/>
+</header>
+<main>
+    <slot />
+</main>
