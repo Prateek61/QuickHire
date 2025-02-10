@@ -3,7 +3,6 @@ from enum import Enum
 from datetime import datetime
 
 from marshmallow import fields, ValidationError
-from ..query import *
 
 class DBType(Enum):
     INTEGER = "INTEGER"
@@ -97,13 +96,13 @@ class Varchar(DatabaseFieldBase, fields.String):
 from .base_schema import BaseSchema
 
 class ForeignKey(DatabaseFieldBase, fields.Integer):
-    def __init__(self, ref_schema: type, on_delete: str = "", **kwargs):
+    def __init__(self, ref_schema: BaseSchema, on_delete: str = "", **kwargs):
         # Assert that the ref_schema is a subclass of BaseSchema
         if not issubclass(ref_schema, BaseSchema):
             raise ValueError("ref_schema must be a subclass of BaseSchema")
         
         self._on_delete = on_delete
-        self._ref_schema: BaseSchema = ref_schema()
+        self._ref_schema: BaseSchema = ref_schema
         self._ref_table_name: str = self._ref_schema._table()
         
         self.pk_name, self.pk_field = self._ref_schema._get_pk()

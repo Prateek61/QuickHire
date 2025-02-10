@@ -1,15 +1,15 @@
-from psycopg2.extensions import cursor as Cursor
 from abc import ABC, abstractmethod
+from ..engine import *
 
 from typing import Dict, Any, Iterable
 
 class QueryBase(ABC):
     @abstractmethod
-    def construct_query(self, cursor: Cursor, reconstruct: bool = False) -> str:
+    def construct_query(self, session: DBSession, reconstruct: bool = False) -> str:
         pass
 
     @abstractmethod
-    def _bind_query(self, cursor: Cursor) -> str:
+    def _bind_query(self, session: DBSession) -> str:
         pass
 
     @abstractmethod
@@ -33,19 +33,19 @@ class Query(QueryBase):
         self._changed = True
         self._end = end
 
-    def construct_query(self, cursor: Cursor, reconstruct: bool = False) -> str:
+    def construct_query(self, session: DBSession, reconstruct: bool = False) -> str:
         if self.is_constructed() and not reconstruct:
             return self._final_query
-        self._final_query = self._bind_query(cursor)
+        self._final_query = self._bind_query(session)
         self.changed = False
         return self._final_query
 
-    def _bind_query(self, cursor: Cursor) -> str:
+    def _bind_query(self, session: DBSession) -> str:
         binded_query: str = self._query
         if self._sub_queries:
-            binded_query = self._bind_sub_queries(binded_query, cursor=cursor)
+            binded_query = self._bind_sub_queries(binded_query, session)
         if self._params:
-            binded_query = cursor.mogrify(binded_query, self._params).decode("utf-8")
+            binded_query = session.cursor.mogrify(binded_query, self._params).decode("utf-8")
         if self._end:
             binded_query += ";"
         return binded_query
@@ -92,13 +92,13 @@ class Query(QueryBase):
     def get_params(self) -> Dict[str, Any]:
         return self._params
 
-    def _bind_sub_queries(self, query: str, cursor: Cursor) -> str:
+    def _bind_sub_queries(self, query: str, session: DBSession) -> str:
         for key, sub_query in self._sub_queries.items():
             sub_query_str: str = ""
             if sub_query.is_constructed():
                 sub_query_str = sub_query.query_str
             else:
-                sub_query_str = sub_query.construct_query(cursor)
+                sub_query_str = sub_query.construct_query(session)
 
             query = query.replace(f"%%({key})%%", sub_query_str)
         return query
@@ -110,15 +110,15 @@ class QueryParamList(QueryBase):
         self._final_query = ""
         self._changed = False
 
-    def construct_query(self, cursor: Cursor, reconstruct: bool = False) -> str:
+    def construct_query(self, session: DBSession, reconstruct: bool = False) -> str:
         if self.is_constructed() and not reconstruct:
             return self._final_query
-        self._final_query = self._bind_query(cursor)
+        self._final_query = self._bind_query(session)
         self._changed = False
         return self._final_query
 
-    def _bind_query(self, cursor: Cursor) -> str:
-        binded_query: str = ",".join(cursor.mogrify(self._query, i).decode("utf-8")
+    def _bind_query(self, session: DBSession) -> str:
+        binded_query: str = ",".join(session.cursor.mogrify(self._query, i).decode("utf-8")
                                     for i in self._params)
         return binded_query
 
