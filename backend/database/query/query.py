@@ -34,7 +34,7 @@ class QueryBase(ABC):
 class Query(QueryBase):
     """Class representing a single SQL query with optional subqueries."""
     
-    SUBQUERY_PATTERN = "{{%s}}"  # Format for subquery placeholders
+    SUBQUERY_PATTERN = "??plac(%s)??"  # Format for subquery placeholders
     
     def __init__(self, query: str = "", params: Optional[Dict[str, Any]] = None, end: bool = False):
         """Initialize a new Query instance."""

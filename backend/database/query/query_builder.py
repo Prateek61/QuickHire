@@ -1,17 +1,54 @@
-from ..model.base_schema import BaseSchema
-from .query import QueryBase, Query, QueryParamList
-from psycopg2.extensions import AsIs
-from typing import List
+from typing import Any, Dict, List, Optional, Union, TypeVar
 from abc import ABC, abstractmethod
+from psycopg2.extensions import AsIs
 from ..engine import DBSession
+from .query import Query, QueryParamList
+from ..model.base_schema import BaseSchema
 
-from typing import Any, Dict
+T = TypeVar('T')
 
-def _get_random_name() -> str:
-    import random
-    import string
-    return "".join(random.choices(string.ascii_letters, k=10))
+def _name() -> str:
+    """Generate a unique name for query parameters."""
+    _name.counter += 1
+    return f'p{_name.counter}'
+_name.counter = 0
 
+class Alias(ABC):
+    def _get(self) -> str:
+        pass
+
+def _format_value(value: Any) -> Any:
+    """Format a value for use in a query."""
+    if isinstance(value, AsIs):
+        return value
+    if isinstance(value, Alias):
+        return value._get()
+    return value
+
+class TableAlias(Alias):
+    def __init__(self, table: BaseSchema, alias: str):
+        self.table = table
+        self.alias = alias
+
+    def _get(self) -> AsIs:
+        return AsIs(self.alias)
+    
+    def col(self, name: str) -> AsIs:
+        return AsIs(f'{self.alias}.{self.table._get_col(name)}')
+
+    def __getattr__(self, name: str):
+        return self.table.__getattr__(name) 
+    
+class Field(Alias):
+    def __init__(self, table: Union[str, BaseSchema, TableAlias], name: str):
+        self.table = table
+        self.name = name
+
+    def _get(self) -> AsIs:
+        if isinstance(self.table, TableAlias) or isinstance(self.table, BaseSchema):
+            return self.table.col(self.name)
+        return AsIs(f'{self.table}.{self.name}')
+    
 class QueryBuilder(ABC):
     @abstractmethod
     def get_query(self) -> Query:
@@ -19,155 +56,288 @@ class QueryBuilder(ABC):
 
     def get_query_str(self, session: DBSession) -> str:
         return self.get_query().construct_query(session)
-
-def _format_param(value: Any) -> Any:
-    """Helper function to format parameters consistently"""
-    if isinstance(value, str) and any(op in value for op in ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']):
-        return AsIs(value)
-    return value
     
-class ConditionQueryBuilder(QueryBuilder):
+class Condition(QueryBuilder):
     def __init__(self):
-        self._query = Query(end=False)
+        self._query = Query()
 
     def get_query(self) -> Query:
         return self._query
     
-    def greater_than(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, '>')
+    def gt(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('>', a, b)
     
-    def less_than(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, '<')
+    def gte(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('>=', a, b)
     
-    def greater_than_equal(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, '>=')
+    def lt(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('<', a, b)
     
-    def less_than_equal(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, '<=')
+    def lte(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('<=', a, b)
     
-    def equal(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, '=')
+    def eq(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('=', a, b)
     
-    def not_equal(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, '!=')
+    def neq(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('<>', a, b)
     
-    def like(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, 'LIKE')
-    
-    def ilike(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, 'ILIKE')
-    
-    def in_(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, 'IN')
-    
-    def not_in(self, a: Any, b: Any) -> 'ConditionQueryBuilder':
-        return self._internal_make_query(a, b, 'NOT IN')
-    
-    def and_(self, cond: Any | None = None) -> 'ConditionQueryBuilder':
+    def and_(self, cond: Any | None = None) -> 'Condition':
         return self._internal_connectors('AND', cond)
     
-    def or_(self, cond: Any | None = None) -> 'ConditionQueryBuilder':
+    def or_(self, cond: Any | None = None) -> 'Condition':
         return self._internal_connectors('OR', cond)
     
-    def not_(self, cond: Any | None = None) -> 'ConditionQueryBuilder':
+    def not_(self, cond: Any | None = None) -> 'Condition':
         return self._internal_connectors('NOT', cond)
+    
+    def in_(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('IN', a, b)
+    
+    def like(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('LIKE', a, b)
+    
+    def ilike(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('ILIKE', a, b)
+    
+    def not_in(self, a: Any, b: Any) -> 'Condition':
+        return self._internal_op('NOT IN', a, b)
 
-    def _internal_make_query(self, a: Any, b: Any, op: str) -> 'ConditionQueryBuilder':
-        a_name = _get_random_name()
-        b_name = _get_random_name()
+    def is_null(self, a: Any) -> 'Condition':
+        return self._internal_single_op('IS NULL', a)
+    
+    def is_not_null(self, a: Any) -> 'Condition':
+        return self._internal_single_op('IS NOT NULL', a)
+    
+    def between(self, a: Any, b: Any, c: Any) -> 'Condition':
+        a_name, b_name, c_name = _name(), _name(), _name()
 
-        if isinstance(a, QueryBuilder):
-            a_query_str = f'%%({a_name})%%'
-            self._query.add_sub_queries({a_name: a.get_query()})
-        else:
-            a_query_str = f'%({a_name})s'
-            self._query.add_params({a_name: _format_param(a)})
+        a_q = self._build_query_part(a, a_name)
+        b_q = self._build_query_part(b, b_name)
+        c_q = self._build_query_part(c, c_name)
 
-        if isinstance(b, QueryBuilder):
-            b_query_str = f'%%({b_name})%%'
-            self._query.add_sub_queries({b_name: b.get_query()})
-        else:
-            b_query_str = f'%({b_name})s'
-            self._query.add_params({b_name: _format_param(b)})
-
-        self._query._query += f"{a_query_str} {op} {b_query_str}"
+        self._query._query += f"{a_q} BETWEEN {b_q} AND {c_q}"
         return self
     
-    def _internal_connectors(self, connector: str, cond: Any | None = None) -> 'ConditionQueryBuilder':
-        self._query._query += f' {connector} '
-        
+    def exists(self, a: Any) -> 'Condition':
+        return self._internal_single_op('EXISTS', a)
+    
+    def not_exists(self, a: Any) -> 'Condition':
+        return self._internal_single_op('NOT EXISTS', a)
+    
+    def any(self, a: Any) -> 'Condition':
+        return self._internal_single_op('ANY', a)
+    
+    def all(self, a: Any) -> 'Condition':
+        return self._internal_single_op('ALL', a)
+    
+    def some(self, a: Any) -> 'Condition':
+        return self._internal_single_op('SOME', a)
+
+    def _internal_single_op(self, op: str, a: Any) -> 'Condition':
+        q = self._build_query_part(a, _name())
+        self._query._query += f"{op} ({q})"
+        return self
+
+    def _internal_op(self, op: str, a: Any, b: Any) -> 'Condition':
+        a_name, b_name = _name(), _name()
+
+        a_q = self._build_query_part(a, a_name)
+        b_q = self._build_query_part(b, b_name)
+
+        self._query._query += f"{a_q} {op} {b_q}"
+        return self
+    
+    def _internal_connectors(self, op: str, cond: Any | None = None) -> 'Condition':
+        self._query._query += f" {op} "
         if not cond:
             return self
         
-        name = _get_random_name()
-        if isinstance(cond, QueryBuilder):
-            self._query.add_sub_queries({name: cond.get_query()})
-            self._query._query += f'%%({name})%%'
-        else:
-            self._query.add_params({name: _format_param(cond)})
-            self._query._query += f'%({name})s'
-
+        name = _name()
+        q = self._build_query_part(cond, name)
+        self._query._query += q
         return self
     
-class SelectQueryBuilder(QueryBuilder):
-    def __init__(self, table: BaseSchema, *columns):
-        self._table = table
-        self._latest_joined = table
-        if columns:
-            column_selection_query = QueryParamList('%(column_name)s', [
-                {'column_name': col} for col in columns
-            ])
+    def _build_query_part(self, value: Any, name: str) -> str:
+        if isinstance(value, QueryBuilder):
+            self._query.add_sub_queries({name: value.get_query()})
+            return Query.SUBQUERY_PATTERN % name
         else:
-            column_selection_query = Query('*', end=False)
+            self._query.add_params({name: _format_value(value)})
+            return f"%({name})s"
 
-        self._query = Query('SELECT %%(column_selection)%% FROM %(table_name)s', end=False)
-        self._query.add_params({'table_name': AsIs(table._table())})
-        self._query.add_sub_queries({'column_selection': column_selection_query})
+def _table_str(table: BaseSchema | TableAlias) -> str:
+    if isinstance(table, TableAlias):
+        return f"{table.table._table()} AS {table.alias}"
+    return table._table()
+
+class Select(QueryBuilder):
+    """SQL SELECT query builder."""
+    def __init__(self, table: Union[BaseSchema, TableAlias], *fields: Union[Field, str, AsIs]):
+        self._table = table
+        self._query = Query()
+        self._latest_joined = table
+
+        if fields:
+            cols = QueryParamList('%(col)s', [
+                {'col': field if isinstance(field, (AsIs, str)) else field._get()}
+                for field in fields
+            ])
+            self._query._query = f"SELECT {Query.SUBQUERY_PATTERN % "cols"} FROM %(table)s"
+            self._query.add_sub_queries({'cols': cols})
+        else:
+            self._query._query = "SELECT * FROM %(table)s"
+
+        self._query.add_params({'table': AsIs(_table_str(table))})
 
     def get_query(self) -> Query:
         return self._query
-    
-    def where(self, cond: ConditionQueryBuilder) -> 'SelectQueryBuilder':
-        self._query._query += ' WHERE %%(where)%%'
-        self._query.add_sub_queries({'where': cond.get_query()})
+
+    def where(self, condition: Condition) -> 'Select':
+        """Add WHERE clause."""
+        self._query._query += f" WHERE {Query.SUBQUERY_PATTERN % 'where'}"
+        self._query.add_sub_queries({'where': condition.get_query()})
         return self
-    
-    def having(self, cond: ConditionQueryBuilder) -> 'SelectQueryBuilder':
-        self._query._query += ' HAVING %%(having)%%'
-        self._query.add_sub_queries({'having': cond.get_query()})
-        return self
-    
-    def group_by(self, *columns: str) -> 'SelectQueryBuilder':
-        column_selection_query = QueryParamList('%(column_name)s', [
-            {'column_name': AsIs(col)} for col in columns
+
+    def group_by(self, *fields: Union[Field, str]) -> 'Select':
+        """Add GROUP BY clause."""
+        cols = QueryParamList('%(col)s', [
+            {'col': field if isinstance(field, (AsIs, Field)) else Field(self._table, field)}
+            for field in fields
         ])
-        self._query._query += ' GROUP BY %%(group_by)%%'
-        self._query.add_sub_queries({'group_by': column_selection_query})
+        self._query._query += f" GROUP BY {Query.SUBQUERY_PATTERN % 'group_by'}"
+        self._query.add_sub_queries({'group_by': cols})
         return self
-    
-    def join(self, table: BaseSchema, cond: ConditionQueryBuilder | None = None, join_type: str = 'INNER') -> 'SelectQueryBuilder':
-        if cond:
-            return self._internal_join(table, cond, join_type)
+
+    def having(self, condition: Condition) -> 'Select':
+        """Add HAVING clause."""
+        self._query._query += f" HAVING {Query.SUBQUERY_PATTERN % 'having'}"
+        self._query.add_sub_queries({'having': condition.get_query()})
+        return self
+
+    def order_by(self, *specs: Union[str, AsIs, Alias, Dict[Union[str, Alias, AsIs], str]]) -> 'Select':
+        """Add ORDER BY clause. For each field, you can specify ASC/DESC using a dict."""
+        items = []
+
+        for spec in specs:
+            if isinstance(spec, dict):
+                for field, direction in spec.items():
+                    items.append({'col': AsIs(f"{_format_value(field)} {direction.upper()}")})
+            else:
+                items.append({'col': _format_value(spec)})
         
-        # Find the foreign key
-        fk_name = self._latest_joined._get_fk(table)
-        if fk_name:
-            pk_name, _ = table._get_pk()
-            pk = table.col(pk_name)
-            fk = self._latest_joined.col(fk_name)
-        else:
-            fk_name = table._get_fk(self._latest_joined)
-            if not fk_name:
-                raise ValueError("No foreign key found")
-            pk_name, _ = self._latest_joined._get_pk()
-            pk = self._latest_joined.col(pk_name)
-            fk = table.col(fk_name)
+        self._query._query += f" ORDER BY {Query.SUBQUERY_PATTERN % 'order_by'}"
+        self._query.add_sub_queries({'order_by': QueryParamList('%(col)s', items)})
+        return self
+
+    def limit(self, limit: int) -> 'Select':
+        """Add LIMIT clause."""
+        self._query._query += " LIMIT %(limit)s"
+        self._query.add_params({'limit': limit})
+        return self
+
+    def offset(self, offset: int) -> 'Select':
+        """Add OFFSET clause."""
+        self._query._query += " OFFSET %(offset)s"
+        self._query.add_params({'offset': offset})
+        return self
+
+    def join(self, 
+             table: Union[BaseSchema, TableAlias], 
+             condition: Optional[Condition] = None, 
+             join_type: str = 'INNER') -> 'Select':
+        """
+        Add JOIN clause. If condition is not provided, tries to find a foreign key relationship.
+        join_type can be: INNER, LEFT, RIGHT, FULL
+        """
+        # Auto-detect join condition if not provided
+        if condition is None:
+            # Try to find foreign key from current table to joined table
+            fk_name = self._latest_joined._get_fk(table)
+            if fk_name:
+                # Current table has FK to joined table
+                pk_name, _ = table._get_pk()
+                condition = Condition().eq(
+                    self._latest_joined.col(fk_name),
+                    table.col(pk_name)
+                )
+            else:
+                # Try reverse - joined table might have FK to current table
+                fk_name = table._get_fk(self._latest_joined)
+                if not fk_name:
+                    raise ValueError("No foreign key relationship found between tables")
+                pk_name, _ = self._latest_joined._get_pk()
+                condition = Condition().eq(
+                    table.col(fk_name),
+                    self._latest_joined.col(pk_name)
+                )
+
+        # Add the JOIN clause
+        join_type = join_type.upper()
+        if join_type not in ('INNER', 'LEFT', 'RIGHT', 'FULL'):
+            raise ValueError(f"Invalid join type: {join_type}")
+
+        join_name = _name()
+        self._query._query += f" {join_type} JOIN {AsIs(_table_str(table))} ON {Query.SUBQUERY_PATTERN % join_name}"
+        self._query.add_sub_queries({join_name: condition.get_query()})
         
         self._latest_joined = table
-        return self._internal_join(table, ConditionQueryBuilder().equal(fk, pk), join_type)
-
-    def _internal_join(self, table: BaseSchema, cond: ConditionQueryBuilder, join_type: str) -> 'SelectQueryBuilder':
-        self._query._query += f' {join_type} JOIN {AsIs(table._table())} ON %%(join_condition)%%'
-        self._query.add_sub_queries({'join_condition': cond.get_query()})
         return self
+
+    def union(self, other: 'Select', all: bool = False) -> 'Select':
+        """Combine with another SELECT using UNION."""
+        union_name = _name()
+        self._query._query += f" {'UNION ALL' if all else 'UNION'} {Query.SUBQUERY_PATTERN % union_name}"
+        self._query.add_sub_queries({union_name: other.get_query()})
+        return self
+
+    def intersect(self, other: 'Select', all: bool = False) -> 'Select':
+        """Combine with another SELECT using INTERSECT."""
+        intersect_name = _name()
+        self._query._query += f" {'INTERSECT ALL' if all else 'INTERSECT'} {Query.SUBQUERY_PATTERN % intersect_name}"
+        self._query.add_sub_queries({'intersect': other.get_query()})
+        return self
+
+    def except_(self, other: 'Select', all: bool = False) -> 'Select':
+        """Combine with another SELECT using EXCEPT."""
+        except_name = _name()
+        self._query._query += f" {'EXCEPT ALL' if all else 'EXCEPT'} {Query.SUBQUERY_PATTERN % except_name}"
+        self._query.add_sub_queries({except_name: other.get_query()})
+        return self
+
+class Statement(Alias):
+    def __init__(self, op: str, col: Union[AsIs, str, Field], alias: Optional[str] = None):
+        self.op = op
+        self.col = col
+        self.alias = alias
+
+    def _get(self) -> AsIs:
+        return AsIs(f"{self.op}({_format_value(self.col)}) {f'AS {self.alias}' if self.alias else ''}")
     
+    @classmethod
+    def count(cls, col: Union[AsIs, str, Field], alias: Optional[str] = None) -> 'Statement':
+        return cls('COUNT', col, alias)
+    
+    @classmethod
+    def sum(cls, col: Union[AsIs, str, Field], alias: Optional[str] = None) -> 'Statement':
+        return cls('SUM', col, alias)
+    
+    @classmethod
+    def avg(cls, col: Union[AsIs, str, Field], alias: Optional[str] = None) -> 'Statement':
+        return cls('AVG', col, alias)
+    
+    @classmethod
+    def min(cls, col: Union[AsIs, str, Field], alias: Optional[str] = None) -> 'Statement':
+        return cls('MIN', col, alias)
+    
+    @classmethod
+    def max(cls, col: Union[AsIs, str, Field], alias: Optional[str] = None) -> 'Statement':
+        return cls('MAX', col, alias)
+    
+    @classmethod
+    def distinct(cls, col: Union[AsIs, str, Field], alias: Optional[str] = None) -> 'Statement':
+        return cls('DISTINCT', col, alias)
+    
+    @classmethod
+    def custom(cls, op: str, col: Union[AsIs, str, Field], alias: Optional[str] = None) -> 'Statement':
+        return cls(op, col, alias)
