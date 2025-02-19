@@ -269,24 +269,24 @@ class ForeignKey(DatabaseFieldBase, fields.Integer):
         """Bind the foreign key to its owner schema class."""
         from .base_schema import BaseSchema
         
-        ref = self._ref_schema_raw
-        if isinstance(ref, str):
-            if ref == 'self':
-                ref = schema_class
+        _ref = self._ref_schema_raw
+        if isinstance(_ref, str):
+            if _ref == 'self':
+                _ref = schema_class
             else:
                 raise ValueError("String references other than 'self' are not supported")
                 
-        if not issubclass(ref, BaseSchema):
+        if not issubclass(_ref, BaseSchema):
             raise ValueError("ref_schema must be a subclass of BaseSchema")
             
-        self._ref_schema = ref
+        self._ref_schema = _ref
         self._ref_table_name = self._ref_schema._table()
         self.pk_name, self.pk_field = self._ref_schema._get_pk()
         
         if not self.pk_name:
-            raise ValueError(f"Referenced schema {ref.__name__} has no primary key")
+            raise ValueError(f"Referenced schema {_ref.__name__} has no primary key")
         if not self.pk_field:
-            raise ValueError(f"Referenced schema {ref.__name__} has no primary key field")
+            raise ValueError(f"Referenced schema {_ref.__name__} has no primary key field")
 
     @property
     def db_type(self) -> DBType:
@@ -353,10 +353,7 @@ class Timestamp(DatabaseFieldBase, fields.DateTime):
     def get_column_creation_query(self) -> str:
         parts = [self.db_type.value]
         
-        if self._auto_now:
-            parts.append("DEFAULT CURRENT_TIMESTAMP")
-            parts.append("ON UPDATE CURRENT_TIMESTAMP")
-        elif self._auto_now_add:
+        if self._auto_now or self._auto_now_add:
             parts.append("DEFAULT CURRENT_TIMESTAMP")
             
         if self.db_unique:
@@ -365,6 +362,28 @@ class Timestamp(DatabaseFieldBase, fields.DateTime):
             parts.append("NOT NULL")
             
         return " ".join(parts)
+    
+    def get_trigger_sql(self, table_name: str, column_name: str) -> Optional[str]:
+        """Generate trigger SQL for auto-updating timestamp."""
+        if self._auto_now:
+            func_name = f"{table_name}_{column_name}_update_timestamp"
+            trigger_name = f"trigger_{func_name}"
+            return f"""
+                CREATE OR REPLACE FUNCTION {func_name}()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.{column_name} = CURRENT_TIMESTAMP;
+                    RETURN NEW;
+                END;
+                $$ language 'plpgsql';
+
+                DROP TRIGGER IF EXISTS {trigger_name} ON {table_name};
+                CREATE TRIGGER {trigger_name}
+                    BEFORE UPDATE ON {table_name}
+                    FOR EACH ROW
+                    EXECUTE FUNCTION {func_name}();
+            """
+        return None
 
 class JSON(DatabaseFieldBase, fields.Dict):
     """JSON field for storing arbitrary JSON data."""

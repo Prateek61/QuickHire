@@ -61,21 +61,33 @@ class Query(QueryBase):
 
     def _fix_column_list(self, columns: str) -> str:
         """Format column list in INSERT statements."""
-        cols = [col.strip() for col in re.split(r'\s+|,\s*', columns) if col.strip()]
+        # Split by commas first to preserve comma structure
+        parts = [p.strip() for p in columns.split(',')]
+        # For each part, split by whitespace and take the first non-empty item
+        cols = []
+        for part in parts:
+            items = [item.strip() for item in part.split() if item.strip()]
+            if items:
+                cols.append(items[0])
         return ", ".join(cols)
 
     def _fix_values_list(self, values: str) -> str:
         """Format values list in INSERT statements."""
-        # Split on spaces but preserve quoted strings
+        # Split values preserving quoted strings and parameter placeholders
         parts = []
         current = []
         in_quotes = False
+        in_placeholder = False
         
         for char in values:
             if char == "'":
                 in_quotes = not in_quotes
-            
-            if char.isspace() and not in_quotes:
+            elif char == '%' and not in_quotes:
+                in_placeholder = True
+            elif char == 's' and in_placeholder:
+                in_placeholder = False
+                
+            if char.isspace() and not in_quotes and not in_placeholder:
                 if current:
                     parts.append("".join(current))
                     current = []
@@ -85,14 +97,17 @@ class Query(QueryBase):
         if current:
             parts.append("".join(current))
             
-        # Join with commas, preserving quoted strings
+        # Clean and join parts properly
         formatted = []
         for part in parts:
-            if part.startswith("'"):
+            part = part.strip()
+            # Remove any trailing commas from the part
+            if part.endswith(','):
+                part = part[:-1].strip()
+            if part:
                 formatted.append(part)
-            else:
-                formatted.append(part.strip())
                 
+        # Join with commas, ensuring no double commas
         return ", ".join(formatted)
 
     def _fix_insert_statement(self, query: str) -> str:
@@ -129,6 +144,9 @@ class Query(QueryBase):
         # Remove any trailing semicolon before joining
         prefix = prefix.rstrip(';')
         values = values.rstrip(';')
+        
+        # Remove any extra commas between value sets
+        values = re.sub(r',\s*,', ',', values)
         
         return f"{prefix} VALUES {values}"
 
@@ -287,9 +305,7 @@ class QueryParamList(Query):
             bound_queries = []
             for params in self._param_list:
                 bound_query = session.cursor.mogrify(self._query, params).decode("utf-8")
-                bound_query = bound_query.strip()
-                if not bound_query.startswith('('):
-                    bound_query = f"({bound_query})"
+                bound_query = bound_query.strip().rstrip(',')
                 bound_queries.append(bound_query)
             return ", ".join(bound_queries)
         except Exception as e:

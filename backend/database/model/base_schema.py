@@ -6,10 +6,11 @@ import re
 
 from .fields import DatabaseFieldBase, PrimaryKey
 from .constraints import TableConstraint, Index
-from ..query.query import Query, QueryParamList
-from ..query.queries import QUERIES
+from ..engine import DBSession
+from ..query import Query, QueryParamList, QUERIES
 
-T = TypeVar('T', bound='BaseSchema')
+# Type variables
+T = TypeVar('T')
 
 class ModelSchemaMeta(type(Schema)):
     """Metaclass for BaseSchema that handles automatic initialization of schema classes."""
@@ -18,18 +19,28 @@ class ModelSchemaMeta(type(Schema)):
         # Create the class
         cls = super().__new__(mcs, name, bases, attrs)
         
-        # Skip initialization for BaseSchema itself and abstract schemas
-        if name == 'BaseSchema' or getattr(cls, '__abstract__', False):
+        # Skip initialization for BaseSchema itself
+        if name == 'BaseSchema':
+            return cls
+            
+        # Check if this class explicitly declares itself as abstract
+        # Don't inherit __abstract__ from parent classes
+        is_abstract = '__abstract__' in attrs and attrs['__abstract__']
+        
+        if is_abstract:
             return cls
             
         # Initialize declared fields
-        for field_name, field in cls._declared_fields.items():
-            if hasattr(field, '_post_init'):
-                field._post_init(cls, field_name)
+        if hasattr(cls, '_declared_fields'):
+            for field_name, field in cls._declared_fields.items():
+                if hasattr(field, '_post_init'):
+                    field._post_init(cls, field_name)
             
+        # Bind foreign keys
+        cls._bind_foreign_keys()
+
         # Validate schema
-        if not getattr(cls, '__initializing__', False):
-            cls._validate_schema()
+        cls._validate_schema()
             
         return cls
 
@@ -173,9 +184,9 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
     @classmethod
     def _get_table_creation_query(cls) -> Query:
         """Generate table creation SQL."""
+        # Initialize table creation query
         query = Query(QUERIES['create_table'], {
-            'table_name': AsIs(cls._table()),
-            'extra': AsIs(cls._get_extra_sql() or "")
+            'table_name': AsIs(cls._table())
         })
         
         # Add column definitions
@@ -191,7 +202,49 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
         columns.add_params(params)
         query.add_sub_queries({'columns': columns})
         
+        # Add table constraints as extra SQL
+        extra_sql = cls._get_extra_sql()
+        query.add_sub_queries({'extra': Query(extra_sql if extra_sql else "")})
+        
         return query
+    
+    @classmethod
+    def _get_trigger_creation_queries(cls) -> List[Query]:
+        """Get queries for creating triggers."""
+        queries = []
+        table_name = cls._table()
+        
+        for field_name, field in cls._fields().items():
+            if hasattr(field, 'get_trigger_sql'):
+                trigger_sql = field.get_trigger_sql(table_name, cls._get_col(field_name))
+                if trigger_sql:
+                    queries.append(Query(trigger_sql))
+        
+        return queries
+
+    @classmethod
+    def create_table(cls, session: DBSession):
+        """Create table and related objects (triggers, indexes, etc.)."""
+        # Create table
+        creation_query = cls._get_table_creation_query()
+        session.execute(creation_query)
+        
+        # Create triggers
+        for trigger_query in cls._get_trigger_creation_queries():
+            session.execute(trigger_query)
+        
+        # Create indexes
+        for index_sql in cls._get_indexes():
+            session.execute(Query(index_sql))
+
+    @classmethod
+    def _bind_foreign_keys(cls):
+        """Bind foreign key constraints."""
+        from .fields import ForeignKey
+        
+        for field_name, field in cls._fields().items():
+            if isinstance(field, ForeignKey):
+                field._bind_to_schema(cls)
 
     @classmethod
     def _get_fk(cls, table: Type[T]) -> Optional[str]:
@@ -278,3 +331,4 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
         WHERE {where}
         """
         
+        return Query(sql, params or {})
