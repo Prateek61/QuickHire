@@ -5,7 +5,7 @@ from typing import List
 from abc import ABC, abstractmethod
 from ..engine import DBSession
 
-from typing import Any
+from typing import Any, Dict
 
 def _get_random_name() -> str:
     import random
@@ -19,6 +19,12 @@ class QueryBuilder(ABC):
 
     def get_query_str(self, session: DBSession) -> str:
         return self.get_query().construct_query(session)
+
+def _format_param(value: Any) -> Any:
+    """Helper function to format parameters consistently"""
+    if isinstance(value, str) and any(op in value for op in ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']):
+        return AsIs(value)
+    return value
     
 class ConditionQueryBuilder(QueryBuilder):
     def __init__(self):
@@ -75,14 +81,14 @@ class ConditionQueryBuilder(QueryBuilder):
             self._query.add_sub_queries({a_name: a.get_query()})
         else:
             a_query_str = f'%({a_name})s'
-            self._query.add_params({a_name: a})
+            self._query.add_params({a_name: _format_param(a)})
 
         if isinstance(b, QueryBuilder):
             b_query_str = f'%%({b_name})%%'
             self._query.add_sub_queries({b_name: b.get_query()})
         else:
             b_query_str = f'%({b_name})s'
-            self._query.add_params({b_name: b})
+            self._query.add_params({b_name: _format_param(b)})
 
         self._query._query += f"{a_query_str} {op} {b_query_str}"
         return self
@@ -98,7 +104,7 @@ class ConditionQueryBuilder(QueryBuilder):
             self._query.add_sub_queries({name: cond.get_query()})
             self._query._query += f'%%({name})%%'
         else:
-            self._query.add_params({name: cond})
+            self._query.add_params({name: _format_param(cond)})
             self._query._query += f'%({name})s'
 
         return self
@@ -133,7 +139,7 @@ class SelectQueryBuilder(QueryBuilder):
     
     def group_by(self, *columns: str) -> 'SelectQueryBuilder':
         column_selection_query = QueryParamList('%(column_name)s', [
-            {'column_name': col} for col in columns
+            {'column_name': AsIs(col)} for col in columns
         ])
         self._query._query += ' GROUP BY %%(group_by)%%'
         self._query.add_sub_queries({'group_by': column_selection_query})
@@ -159,7 +165,6 @@ class SelectQueryBuilder(QueryBuilder):
         
         self._latest_joined = table
         return self._internal_join(table, ConditionQueryBuilder().equal(fk, pk), join_type)
-
 
     def _internal_join(self, table: BaseSchema, cond: ConditionQueryBuilder, join_type: str) -> 'SelectQueryBuilder':
         self._query._query += f' {join_type} JOIN {AsIs(table._table())} ON %%(join_condition)%%'

@@ -1,2 +1,3 @@
-from .queries import QUERIES
-from .query import QueryBase, Query, QueryParamList
+from .query import Query, QueryParamList, QueryError
+
+__all__ = ['Query', 'QueryParamList', 'QueryError']
