@@ -1,11 +1,31 @@
-from typing import Any, Dict, List, Optional, Union, TypeVar
+from typing import Any, Dict, List, Optional, Union, TypeVar, Protocol, TYPE_CHECKING
 from abc import ABC, abstractmethod
 from psycopg2.extensions import AsIs
 from ..engine import DBSession
 from .query import Query, QueryParamList
-from ..model.base_schema import BaseSchema
+from .base import QueryBuilderBase
+
+if TYPE_CHECKING:
+    from ..model.base_schema import BaseSchema
 
 T = TypeVar('T')
+
+class SchemaProtocol(Protocol):
+    """Protocol for schema operations to avoid circular imports."""
+    @classmethod
+    def _table(cls) -> str: ...
+    
+    @classmethod
+    def _get_col(cls, field_name: str) -> str: ...
+    
+    @classmethod
+    def _get_fk(cls, table: Any) -> Optional[str]: ...
+    
+    @classmethod
+    def _get_pk(cls) -> tuple[Optional[str], Any]: ...
+    
+    @classmethod
+    def col(cls, field_name: str) -> AsIs: ...
 
 def _name() -> str:
     """Generate a unique name for query parameters."""
@@ -26,7 +46,7 @@ def _format_value(value: Any) -> Any:
     return value
 
 class TableAlias(Alias):
-    def __init__(self, table: BaseSchema, alias: str):
+    def __init__(self, table: SchemaProtocol, alias: str):
         self.table = table
         self.alias = alias
 
@@ -36,16 +56,25 @@ class TableAlias(Alias):
     def col(self, name: str) -> AsIs:
         return AsIs(f'{self.alias}.{self.table._get_col(name)}')
 
-    def __getattr__(self, name: str):
-        return self.table.__getattr__(name) 
+    def _get_col(self, name: str) -> str:
+        return self.table._get_col(name)
+
+    def _table(self) -> str:
+        return self.table._table()
+
+    def _get_fk(self, target: Any) -> Optional[str]:
+        return self.table._get_fk(target)
+
+    def _get_pk(self) -> tuple[Optional[str], Any]:
+        return self.table._get_pk()
     
 class Field(Alias):
-    def __init__(self, table: Union[str, BaseSchema, TableAlias], name: str):
+    def __init__(self, table: Union[str, SchemaProtocol, TableAlias], name: str):
         self.table = table
         self.name = name
 
     def _get(self) -> AsIs:
-        if isinstance(self.table, TableAlias) or isinstance(self.table, BaseSchema):
+        if isinstance(self.table, (TableAlias, SchemaProtocol)):
             return self.table.col(self.name)
         return AsIs(f'{self.table}.{self.name}')
     
@@ -166,14 +195,14 @@ class Condition(QueryBuilder):
             self._query.add_params({name: _format_value(value)})
             return f"%({name})s"
 
-def _table_str(table: BaseSchema | TableAlias) -> str:
+def _table_str(table: Union[SchemaProtocol, TableAlias]) -> str:
     if isinstance(table, TableAlias):
         return f"{table.table._table()} AS {table.alias}"
     return table._table()
 
 class Select(QueryBuilder):
     """SQL SELECT query builder."""
-    def __init__(self, table: Union[BaseSchema, TableAlias], *fields: Union[Field, str, AsIs]):
+    def __init__(self, table: Union[SchemaProtocol, TableAlias], *fields: Union[Field, str, AsIs]):
         self._table = table
         self._query = Query()
         self._latest_joined = table
@@ -242,9 +271,9 @@ class Select(QueryBuilder):
         self._query.add_params({'offset': offset})
         return self
 
-    def join(self, 
-             table: Union[BaseSchema, TableAlias], 
-             condition: Optional[Condition] = None, 
+    def join(self,
+             table: Union[SchemaProtocol, TableAlias],
+             condition: Optional[Condition] = None,
              join_type: str = 'INNER') -> 'Select':
         """
         Add JOIN clause. If condition is not provided, tries to find a foreign key relationship.

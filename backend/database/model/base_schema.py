@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Iterable, Tuple, List, Optional, TypeVar, Type, Set, Union
+from typing import Dict, Any, Iterable, Tuple, List, Optional, TypeVar, Type, Set, Union, Generic, TYPE_CHECKING
 from marshmallow import Schema, fields, ValidationError, post_load
 from psycopg2.extensions import cursor as Cursor, AsIs
 from dataclasses import dataclass, field
@@ -10,9 +10,14 @@ from .fields import DatabaseFieldBase, PrimaryKey
 from .constraints import TableConstraint, Index
 from ..engine import DBSession
 from ..query import Query, QueryParamList, QUERIES
+from ..query.base import QueryBuilderBase
+
+# Forward references for type checking
+if TYPE_CHECKING:
+    from ..query.query_builder import Select, Condition
 
 # Type variables
-T = TypeVar('T')
+T = TypeVar('T', bound='BaseDataClass')
 
 class BaseDataClass(ABC):
     """Base class for database table data classes.
@@ -51,7 +56,7 @@ class ModelSchemaMeta(type(Schema)):
             
         return cls
 
-class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
+class BaseSchema(Schema, ABC, Generic[T], metaclass=ModelSchemaMeta):
     """Base class for database table schemas."""
 
     # Class-level configuration
@@ -59,6 +64,72 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
     __table_args__ = None  # Additional table arguments (constraints, indexes, etc.)
     __initializing__ = False  # Flag to prevent validation during initialization
     __data_class__ = BaseDataClass  # Data class associated with this schema
+
+    # Core database operations
+    @classmethod
+    def get_by_id(cls, session: DBSession, id_value: Any) -> Optional[T]:
+        """Get a record by its primary key."""
+        from ..query.query_builder import Select, Condition
+        
+        pk_name, _ = cls._get_pk()
+        if not pk_name:
+            raise ValueError(f"Schema {cls.__name__} has no primary key")
+        
+        condition = Condition().eq(cls.col(pk_name), id_value)
+        query = Select(cls).where(condition).get_query()
+        return QueryHelper.fetch_one(query, session, cls)
+
+    @classmethod
+    def get_all(cls, session: DBSession,
+                order_by: Optional[List[str]] = None,
+                limit: Optional[int] = None,
+                offset: Optional[int] = None) -> List[T]:
+        """Get all records with optional ordering and pagination."""
+        from ..query.query_builder import Select
+        
+        query = Select(cls)
+        
+        if order_by:
+            query.order_by(*[cls.col(field) for field in order_by])
+        if limit is not None:
+            query.limit(limit)
+        if offset is not None:
+            query.offset(offset)
+            
+        return QueryHelper.fetch_multiple(query.get_query(), session, cls)
+
+    @classmethod
+    def filter_by(cls, session: DBSession,
+                  filters: Dict[str, Any],
+                  order_by: Optional[List[str]] = None) -> List[T]:
+        """Get records matching the given filters."""
+        from ..query.query_builder import Select, Condition
+        
+        condition = Condition()
+        first = True
+        
+        for field, value in filters.items():
+            if first:
+                condition.eq(cls.col(field), value)
+                first = False
+            else:
+                condition.and_().eq(cls.col(field), value)
+                
+        query = Select(cls).where(condition)
+        
+        if order_by:
+            query.order_by(*[cls.col(field) for field in order_by])
+            
+        return QueryHelper.fetch_multiple(query.get_query(), session, cls)
+
+    @classmethod
+    def exists_by_field(cls, session: DBSession, field: str, value: Any) -> bool:
+        """Check if a record exists with the given field value."""
+        from ..query.query_builder import Select, Condition
+        
+        condition = Condition().eq(cls.col(field), value)
+        query = Select(cls).where(condition).limit(1)
+        return bool(QueryHelper.fetch_one_raw(query.get_query(), session))
     
     @classmethod
     def _validate_schema(cls):
@@ -91,18 +162,17 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
                     )
     
     @classmethod
-    def serialize_single(self, data) -> BaseDataClass:
+    def serialize_single(cls, data: Dict[str, Any]) -> T:
         """Serialize single object to data class."""
-        return self.__data_class__(**data)
+        return cls.__data_class__(**data)
     
     @classmethod
-    def load_multiple(self, data: List[Any]) -> List[BaseDataClass]:
+    def load_multiple(cls, data: List[Dict[str, Any]]) -> List[T]:
         """Deserialize multiple objects to data class."""
-        return [self.serialize_single(item) for item in data]
+        return [cls.serialize_single(item) for item in data]
     
     @post_load
-    @classmethod
-    def make_data(self, data, **kwargs) -> BaseDataClass:
+    def make_data(self, data: Dict[str, Any], **kwargs) -> T:
         """Deserialize data to data class."""
         return self.serialize_single(data)
 
@@ -343,16 +413,16 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
         return_columns = [cls._get_col(field) for field in returning_fields]
         
         sql = f"""
-        INSERT INTO {cls._table()} 
+        INSERT INTO {cls._table()}
             ({', '.join(columns)})
         VALUES
             {Query.SUBQUERY_PATTERN % 'values'}
-        RETURNING {', '.join(return_columns)}
         """
         
-        qp = QueryParamList(f"""
-            ({', '.join(values)})
-        """)
+        if return_columns:
+            sql += f" RETURNING {', '.join(return_columns)}"
+        
+        qp = QueryParamList("(" + ", ".join(values) + ")")
 
         q = Query(sql, {})
         return q, qp
@@ -370,8 +440,9 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
         return Query(sql, params or {})
 
 class QueryHelper:
-    @staticmethod 
+    @staticmethod
     def run(query: Query, session: DBSession, force_log: bool = True) -> None:
+        """Execute a query without returning results."""
         query_str = query.construct_query(session=session)
         session.cursor.execute(query_str)
 
@@ -379,31 +450,45 @@ class QueryHelper:
             print(f"Executed Query: {query_str}")
 
     @staticmethod
-    def fetch_one_raw(query: Query, session: DBSession) -> Dict:
+    def fetch_one_raw(query: Query, session: DBSession) -> Optional[Dict[str, Any]]:
+        """Fetch a single row as a dictionary."""
         query_str = query.construct_query(session=session)
         session.cursor.execute(query_str)
-        return session.cursor.fetchone()
+        result = session.cursor.fetchone()
+        if result:
+            return {key: result[key] for key in result.keys()}
+        return None
     
     @staticmethod
-    def fetch_multiple_raw(query: Query, session: DBSession) -> List[Dict]:
+    def fetch_multiple_raw(query: Query, session: DBSession) -> List[Dict[str, Any]]:
+        """Fetch multiple rows as dictionaries."""
         query_str = query.construct_query(session=session)
         session.cursor.execute(query_str)
-        return session.cursor.fetchall()
+        results = session.cursor.fetchall()
+        return [{key: row[key] for key in row.keys()} for row in results]
     
     @staticmethod
-    def fetch_one(query: Query, session: DBSession, schema: Type[BaseSchema]) -> BaseDataClass:
+    def fetch_one(query: Query, session: DBSession, schema: Type[BaseSchema[T]]) -> Optional[T]:
+        """Fetch and deserialize a single row."""
         raw = QueryHelper.fetch_one_raw(query, session)
-        return schema().load(raw)
+        if raw:
+            return schema().load(raw)
+        return None
     
     @staticmethod
-    def fetch_multiple(query: Query, session: DBSession, schema: Type[BaseSchema]) -> List[BaseDataClass]:
+    def fetch_multiple(query: Query, session: DBSession, schema: Type[BaseSchema[T]]) -> List[T]:
+        """Fetch and deserialize multiple rows."""
         raw = QueryHelper.fetch_multiple_raw(query, session)
         return schema(many=True).load(raw)
     
     @staticmethod
-    def insert(data: List[BaseDataClass], schema: Type[BaseSchema], session: DBSession) -> List[BaseDataClass]:
+    def insert(data: Union[T, List[T]], schema: Type[BaseSchema[T]], session: DBSession) -> Union[T, List[T]]:
+        """Insert one or more records."""
+        single_item = not isinstance(data, list)
+        items = [data] if single_item else data
+            
         insert_query, query_param = schema._get_insert_query()
-        dumped = schema(many=True).dump(data)
+        dumped = schema(many=True).dump(items)
         query_param.add_params(dumped)
         insert_query.add_sub_queries({'values': query_param})
         QueryHelper.run(insert_query, session)
@@ -416,9 +501,11 @@ class QueryHelper:
 
         if returning_fields:
             returning_data = session.cursor.fetchall()
-            for i, item in enumerate(data):
+            for i, item in enumerate(items):
                 for name, field in returning_fields:
-                    setattr(item, name, returning_data[i][schema._get_col_from_field(field)])
+                    col_name = schema._get_col_from_field(field)
+                    row_dict = {key: returning_data[i][key] for key in returning_data[i].keys()}
+                    setattr(item, name, row_dict[col_name])
 
-        return data
+        return items[0] if single_item else items
     

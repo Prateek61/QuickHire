@@ -272,7 +272,7 @@ class ForeignKey(DatabaseFieldBase, fields.Integer):
         self.pk_name = None
         self.pk_field = None
 
-    def _bind_to_schema(self, schema_class):
+    def _bind_to_schema(self, schema_class: Any, *args, **kwargs) -> None:
         """Bind the foreign key to its owner schema class."""
         from .base_schema import BaseSchema
         
@@ -343,19 +343,39 @@ class Time(DatabaseFieldBase, fields.Time):
 class Timestamp(DatabaseFieldBase, fields.DateTime):
     """Timestamp field with optional auto-update on insert/update."""
     
-    def __init__(self, 
+    def __init__(self,
                  auto_now: bool = False,
                  auto_now_add: bool = False,
+                 allow_none: bool = True,
                  **kwargs):
         """Initialize timestamp field."""
         self._auto_now = auto_now
         self._auto_now_add = auto_now_add
         DatabaseFieldBase.__init__(self, **kwargs)
-        fields.DateTime.__init__(self, **kwargs)
+        fields.DateTime.__init__(self, allow_none=allow_none, **kwargs)
 
     @property
     def db_type(self) -> DBType:
         return DBType.TIMESTAMP
+    
+    def _serialize(self, value: Any, attr: str, obj: Any, **kwargs) -> Optional[str]:
+        """Convert datetime to string."""
+        if value is None:
+            return None
+        return value.isoformat() if isinstance(value, datetime) else str(value)
+    
+    def _deserialize(self, value: Any, attr: str, data: Dict, **kwargs) -> Optional[datetime]:
+        """Convert string to datetime."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            if isinstance(value, str):
+                return datetime.fromisoformat(value)
+        except (TypeError, ValueError) as error:
+            raise ValidationError('Not a valid datetime.') from error
+        return value
     
     def get_column_creation_query(self) -> str:
         parts = [self.db_type.value]
