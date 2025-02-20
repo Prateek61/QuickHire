@@ -111,6 +111,10 @@ class DatabaseFieldBase(fields.Field, ABC):
             index_name = f"idx_{table_name}_{column_name}"
             return f"CREATE INDEX {index_name} ON {table_name} ({column_name})"
         return None
+    
+    def is_auto(self) -> bool:
+        """Whether the field is auto-generated."""
+        return False
 
 class PrimaryKey(DatabaseFieldBase, fields.Integer):
     """Auto-incrementing primary key field."""
@@ -128,6 +132,9 @@ class PrimaryKey(DatabaseFieldBase, fields.Integer):
     
     def get_column_creation_query(self) -> str:
         return f"{self.db_type.value} PRIMARY KEY"
+    
+    def is_auto(self) -> bool:
+        return True
 
 class Integer(DatabaseFieldBase, fields.Integer):
     """Integer field."""
@@ -362,6 +369,9 @@ class Timestamp(DatabaseFieldBase, fields.DateTime):
             parts.append("NOT NULL")
             
         return " ".join(parts)
+    
+    def is_auto(self) -> bool:
+        return self._auto_now or self._auto_now_add
     
     def get_trigger_sql(self, table_name: str, column_name: str) -> Optional[str]:
         """Generate trigger SQL for auto-updating timestamp."""

@@ -1,6 +1,7 @@
 from database.connection import PostgresConnection
 from .session import Session
 from psycopg2.extensions import cursor as psycopg2_cursor
+import psycopg2
 
 from enum import Enum
 

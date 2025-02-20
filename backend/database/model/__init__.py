@@ -39,7 +39,7 @@ from .constraints import (
     Index
 )
 
-from .base_schema import BaseSchema
+from .base_schema import BaseSchema, BaseDataClass, QueryHelper
 
 __all__ = [
     # Fields
@@ -64,5 +64,9 @@ __all__ = [
     'Index',
     
     # Base Schema
-    'BaseSchema'
+    'BaseSchema',
+    'BaseDataClass',
+
+    # Query Runner
+    'QueryHelper'
 ]

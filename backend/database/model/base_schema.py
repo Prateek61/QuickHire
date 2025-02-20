@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Iterable, Tuple, List, Optional, TypeVar, Type, Set, Union
-from marshmallow import Schema, fields, ValidationError
+from marshmallow import Schema, fields, ValidationError, post_load
 from psycopg2.extensions import cursor as Cursor, AsIs
+from dataclasses import dataclass, field
+from datetime import datetime
 import re
 
 from .fields import DatabaseFieldBase, PrimaryKey
@@ -11,6 +13,11 @@ from ..query import Query, QueryParamList, QUERIES
 
 # Type variables
 T = TypeVar('T')
+
+class BaseDataClass(ABC):
+    """Base class for database table data classes.
+    """
+    pass
 
 class ModelSchemaMeta(type(Schema)):
     """Metaclass for BaseSchema that handles automatic initialization of schema classes."""
@@ -51,6 +58,7 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
     __abstract__ = True  # Whether this is an abstract base class
     __table_args__ = None  # Additional table arguments (constraints, indexes, etc.)
     __initializing__ = False  # Flag to prevent validation during initialization
+    __data_class__ = BaseDataClass  # Data class associated with this schema
     
     @classmethod
     def _validate_schema(cls):
@@ -82,6 +90,22 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
                         "which has no primary key"
                     )
     
+    @classmethod
+    def serialize_single(self, data) -> BaseDataClass:
+        """Serialize single object to data class."""
+        return self.__data_class__(**data)
+    
+    @classmethod
+    def load_multiple(self, data: List[Any]) -> List[BaseDataClass]:
+        """Deserialize multiple objects to data class."""
+        return [self.serialize_single(item) for item in data]
+    
+    @post_load
+    @classmethod
+    def make_data(self, data, **kwargs) -> BaseDataClass:
+        """Deserialize data to data class."""
+        return self.serialize_single(data)
+
     @classmethod
     def _table(cls) -> str:
         """Get the table name for this schema."""
@@ -232,15 +256,16 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
         """Create table and related objects (triggers, indexes, etc.)."""
         # Create table
         creation_query = cls._get_table_creation_query()
-        session.execute(creation_query)
+        session.execute(creation_query.construct_query(session))
         
         # Create triggers
         for trigger_query in cls._get_trigger_creation_queries():
-            session.execute(trigger_query)
+            trigger_query.set_end()
+            session.execute(trigger_query.construct_query(session))
         
         # Create indexes
         for index_sql in cls._get_indexes():
-            session.execute(Query(index_sql))
+            session.execute(index_sql)
 
     @classmethod
     def _bind_foreign_keys(cls):
@@ -298,33 +323,39 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
         
         return Query(sql, params)
     
-    def get_insert_query(self, 
-                        fields: Optional[List[str]] = None) -> Query:
+    @classmethod
+    def _get_insert_query(cls, 
+                        fields: Optional[List[str]] = None) -> Tuple[Query, QueryParamList]:
         """Generate INSERT query for this record."""
-        cls = self.__class__
-        
         if fields is None:
             fields = [
-                name for name, field in self._fields().items()
-                if not isinstance(field, PrimaryKey) or getattr(self, name) is not None
+                name for name, field in cls._fields().items()
+                if not field.is_auto()
             ]
+
+        returning_fields = [
+            name for name, field in cls._fields().items()
+            if field.is_auto()
+        ]
         
         columns = [cls._get_col(field) for field in fields]
         values = [f"%({field})s" for field in fields]
-        
-        params = {
-            field: getattr(self, field)
-            for field in fields
-        }
+        return_columns = [cls._get_col(field) for field in returning_fields]
         
         sql = f"""
         INSERT INTO {cls._table()} 
             ({', '.join(columns)})
         VALUES
-            ({', '.join(values)})
+            {Query.SUBQUERY_PATTERN % 'values'}
+        RETURNING {', '.join(return_columns)}
         """
         
-        return Query(sql, params)
+        qp = QueryParamList(f"""
+            ({', '.join(values)})
+        """)
+
+        q = Query(sql, {})
+        return q, qp
     
     @classmethod
     def get_delete_query(cls,
@@ -337,3 +368,57 @@ class BaseSchema(Schema, ABC, metaclass=ModelSchemaMeta):
         """
         
         return Query(sql, params or {})
+
+class QueryHelper:
+    @staticmethod 
+    def run(query: Query, session: DBSession, force_log: bool = True) -> None:
+        query_str = query.construct_query(session=session)
+        session.cursor.execute(query_str)
+
+        if force_log:
+            print(f"Executed Query: {query_str}")
+
+    @staticmethod
+    def fetch_one_raw(query: Query, session: DBSession) -> Dict:
+        query_str = query.construct_query(session=session)
+        session.cursor.execute(query_str)
+        return session.cursor.fetchone()
+    
+    @staticmethod
+    def fetch_multiple_raw(query: Query, session: DBSession) -> List[Dict]:
+        query_str = query.construct_query(session=session)
+        session.cursor.execute(query_str)
+        return session.cursor.fetchall()
+    
+    @staticmethod
+    def fetch_one(query: Query, session: DBSession, schema: Type[BaseSchema]) -> BaseDataClass:
+        raw = QueryHelper.fetch_one_raw(query, session)
+        return schema().load(raw)
+    
+    @staticmethod
+    def fetch_multiple(query: Query, session: DBSession, schema: Type[BaseSchema]) -> List[BaseDataClass]:
+        raw = QueryHelper.fetch_multiple_raw(query, session)
+        return schema(many=True).load(raw)
+    
+    @staticmethod
+    def insert(data: List[BaseDataClass], schema: Type[BaseSchema], session: DBSession) -> List[BaseDataClass]:
+        insert_query, query_param = schema._get_insert_query()
+        dumped = schema(many=True).dump(data)
+        query_param.add_params(dumped)
+        insert_query.add_sub_queries({'values': query_param})
+        QueryHelper.run(insert_query, session)
+
+        # Update data with auto-generated fields
+        returning_fields = [
+            (name, field) for name, field in schema._fields().items()
+            if field.is_auto()
+        ]
+
+        if returning_fields:
+            returning_data = session.cursor.fetchall()
+            for i, item in enumerate(data):
+                for name, field in returning_fields:
+                    setattr(item, name, returning_data[i][schema._get_col_from_field(field)])
+
+        return data
+    

@@ -1,6 +1,7 @@
 from .database_connection import DatabaseConnection
 import psycopg2
 from psycopg2.extensions import cursor as psycopg2_cursor
+import psycopg2.extras
 
 from dataclasses import dataclass, field
 from marshmallow import Schema, fields, post_load, ValidationError
@@ -43,12 +44,13 @@ class PostgresDatabaseConnection(DatabaseConnection):
             user=self.config.user,
             password=self.config.password,
             host=self.config.host,
-            port=self.config.port
+            port=self.config.port,
+            cursor_factory=psycopg2.extras.RealDictCursor
         )
         self.connection.autocommit = autocommit
 
     def initialize_connection_url(self, url: str, autocommit: bool):
-        self.connection = psycopg2.connect(url)
+        self.connection = psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
         self.connection.autocommit = autocommit
 
     def cursor(self) -> psycopg2_cursor:
