@@ -1,8 +1,6 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .dependencies import get_session, DBSession, lifespan
-from .dependencies import *
-from .models import *
+from .dependencies import get_session, DBSession, lifespan 
 
 from typing import Union, Annotated
 
@@ -20,15 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+from . import routers
 
-@app.get("/query")
-def read_query(session: SessionDep):
-    q = Select(Users).where(
-        Condition().eq(Users.col("id"), 1)
-    ).get_query().set_end()
-    return {
-        "query": q.construct_query(session)
-    }
+app.include_router(routers.router)
