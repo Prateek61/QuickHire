@@ -1,18 +1,69 @@
-import PocketBase from 'pocketbase';
+import { redirect } from '@sveltejs/kit';
 
-export const handle = async ({ event, resolve }) => {
-	event.locals.pb = new PocketBase('http://localhost:8090');
+/** @type {import('@sveltejs/kit').Handle} */
+export async function handle({ event, resolve }) {
+    // Get auth token from cookies
+    const token = event.cookies.get('session');
 
-	event.locals.pb.authStore.loadFromCookie(event.request.headers.get('cookie') || '');
+    // Protected routes - add your protected paths here
+    const protectedPaths = ['/dashboard', '/profile', '/jobs'];
+    const isProtectedRoute = protectedPaths.some(path => 
+        event.url.pathname.startsWith(path)
+    );
 
-	if (event.locals.pb.authStore.isValid) {
-		event.locals.user = event.locals.pb.authStore.model;
-	}
+    // Auth routes
+    const authPaths = ['/auth/login', '/auth/register'];
+    const isAuthRoute = authPaths.some(path => 
+        event.url.pathname.startsWith(path)
+    );
 
-	const response = await resolve(event);
+    if (token) {
+        try {
+            // Try to fetch user data with token
+            const response = await fetch(`${process.env.PUBLIC_API_URL}/auth/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-	// TODO: secure before deployment
-	response.headers.set('set-cookie', event.locals.pb.authStore.exportToCookie({ secure: false }));
+            if (response.ok) {
+                const user = await response.json();
+                event.locals.user = user;
+                event.locals.token = token;
 
-	return response;
-};
+                // Redirect from auth pages if logged in
+                if (isAuthRoute) {
+                    throw redirect(303, '/');
+                }
+            } else {
+                // Clear invalid token
+                event.cookies.delete('session');
+                event.locals.user = null;
+                event.locals.token = null;
+
+                // Redirect to login if accessing protected route
+                if (isProtectedRoute) {
+                    throw redirect(303, '/auth/login');
+                }
+            }
+        } catch (error) {
+            // Error fetching user - clear token
+            if (!(error instanceof redirect)) {
+                event.cookies.delete('session');
+                event.locals.user = null;
+                event.locals.token = null;
+
+                if (isProtectedRoute) {
+                    throw redirect(303, '/auth/login');
+                }
+            } else {
+                throw error;
+            }
+        }
+    } else if (isProtectedRoute) {
+        // No token and trying to access protected route
+        throw redirect(303, '/auth/login');
+    }
+
+    return await resolve(event);
+}

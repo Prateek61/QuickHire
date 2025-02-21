@@ -1,10 +1,7 @@
-import { serializeNonPOJOs } from '$lib/helpers';
-
-export const load = ({ locals }) => {
-	if (locals.user && locals.user.profile) {
-		return {
-			profile: serializeNonPOJOs(locals.user.profile)
-		};
-	}
-    
-};
+/** @type {import('./$types').LayoutServerLoad} */
+export async function load({ locals }) {
+    return {
+        user: locals.user,
+        token: locals.token
+    };
+}
