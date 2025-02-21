@@ -1,85 +1,117 @@
 <script>
+    import { blur } from 'svelte/transition';
     import { LightSwitch } from '@skeletonlabs/skeleton';
-    import { fade } from 'svelte/transition';
 </script>
 
-<div class="auth-layout fixed inset-0" in:fade={{duration: 300}}>
-    <div class="auth-background fixed inset-0">
-        <div class="gradient-1"></div>
-        <div class="gradient-2"></div>
-    </div>
-
-    <div class="flex flex-col h-full">
-        <header class="auth-header flex justify-between items-center p-6 relative z-10">
-            <a href="/" class="text-2xl font-bold tracking-tight">
-                QuickHire
-            </a>
-            <LightSwitch />
-        </header>
-
-        <main class="flex-1 relative z-10 min-h-0" style="perspective: 1500px;">
-            <div class="relative w-full h-full">
-                <slot />
-            </div>
-        </main>
-
-        <footer class="auth-footer p-6 text-center relative z-10">
-            <p class="text-sm">© {new Date().getFullYear()} QuickHire. All rights reserved.</p>
-        </footer>
-    </div>
-</div>
-
 <style>
-    .auth-layout {
-        background-color: rgb(var(--color-surface-50));
+    .auth-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
     }
 
-    :global(.dark) .auth-layout {
-        background-color: rgb(var(--color-surface-900));
+    /* Light mode background */
+    :global(.light) .auth-bg {
+        background: linear-gradient(
+            135deg,
+            rgb(var(--color-surface-50)) 0%,
+            rgb(var(--color-surface-100)) 100%
+        );
     }
 
-    .auth-background {
-        z-index: 1;
-        opacity: 0.8;
+    :global(.light) .auth-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            circle at 70% 30%,
+            rgba(var(--color-primary-500), 0.15) 0%,
+            transparent 70%
+        );
+    }
+
+    /* Dark mode background */
+    :global(.dark) .auth-bg {
+        background: linear-gradient(
+            135deg,
+            rgb(0, 0, 0) 0%,
+            rgba(var(--color-surface-900), 0.95) 100%
+        );
+    }
+
+    :global(.dark) .auth-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            circle at 70% 30%,
+            rgba(var(--color-primary-500), 0.2) 0%,
+            transparent 70%
+        );
+    }
+
+    :global(.dark) .auth-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: 
+            linear-gradient(45deg, transparent 45%, rgba(var(--color-primary-500), 0.1) 50%, transparent 55%),
+            linear-gradient(-45deg, transparent 45%, rgba(var(--color-primary-500), 0.1) 50%, transparent 55%);
+        background-size: 300% 300%;
+        animation: cyberpunkBg 15s linear infinite;
+        opacity: 0.5;
+    }
+
+    @keyframes cyberpunkBg {
+        0% { background-position: 0% 0%; }
+        100% { background-position: 300% 300%; }
+    }
+
+    .noise {
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        opacity: 0.05;
         pointer-events: none;
+        z-index: -1;
     }
 
-    .gradient-1 {
-        position: absolute;
-        top: -10%;
-        right: -10%;
-        width: 50%;
-        height: 50%;
-        background: radial-gradient(circle, rgb(var(--color-primary-300)) 0%, transparent 70%);
-        filter: blur(100px);
-        animation: float 10s ease-in-out infinite;
+    .theme-toggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 50;
+        background: rgba(var(--color-surface-500), 0.1);
+        backdrop-filter: blur(8px);
+        padding: 0.5rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(var(--color-primary-500), 0.2);
+        box-shadow: 0 0 15px rgba(var(--color-primary-500), 0.2);
+        transition: all 0.3s ease;
     }
 
-    .gradient-2 {
-        position: absolute;
-        bottom: -10%;
-        left: -10%;
-        width: 50%;
-        height: 50%;
-        background: radial-gradient(circle, rgb(var(--color-primary-900)) 0%, transparent 70%);
-        filter: blur(100px);
-        animation: float 15s ease-in-out infinite reverse;
+    .theme-toggle:hover {
+        background: rgba(var(--color-surface-500), 0.15);
+        border-color: rgba(var(--color-primary-500), 0.4);
+        box-shadow: 0 0 20px rgba(var(--color-primary-500), 0.3);
     }
 
-    @keyframes float {
-        0% { transform: translate(0, 0); }
-        50% { transform: translate(5%, 5%); }
-        100% { transform: translate(0, 0); }
+    :global(.dark) .theme-toggle {
+        background: rgba(0, 0, 0, 0.3);
     }
 
-    .auth-header, .auth-footer {
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        background-color: rgba(var(--color-surface-50), 0.5);
-    }
-
-    :global(.dark) .auth-header,
-    :global(.dark) .auth-footer {
-        background-color: rgba(var(--color-surface-900), 0.5);
+    :global(.dark) .theme-toggle:hover {
+        background: rgba(0, 0, 0, 0.4);
     }
 </style>
+
+<div class="auth-bg" in:blur={{ duration: 1000, delay: 200 }}></div>
+<div class="noise"></div>
+
+<div class="theme-toggle">
+    <LightSwitch />
+</div>
+
+<main>
+    <slot />
+</main>
