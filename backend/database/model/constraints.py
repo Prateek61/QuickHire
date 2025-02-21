@@ -34,7 +34,7 @@ class CheckConstraint(TableConstraint):
             name: Optional constraint name
         """
         self.condition = condition
-        self.name = name or f"check_{hash(condition)}"
+        self.name = name or f"check_{abs(hash(condition))}"
     
     def get_constraint_sql(self) -> str:
         return f"CONSTRAINT {self.name} CHECK ({self.condition})"

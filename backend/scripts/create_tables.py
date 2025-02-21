@@ -1,6 +1,7 @@
-from .database import *
-from .models import TABLES
-from .dependencies import load_config
+from base import *
+from database import *
+from app.models import TABLES
+from app.dependencies import load_config
 
 from typing import List, Type
 
@@ -11,7 +12,7 @@ def create_tables(tables: List[Type[BaseSchema]], session: DBSession):
         print(f"Table created: {table.__name__}")
 
 def main():
-    conf = load_config("backend/config.json")
+    conf = load_config("config.json")
     with DBEngine(config=conf['postgres'], log=conf["db_log"]) as engine:
         with engine.session() as session:
             create_tables(TABLES, session)

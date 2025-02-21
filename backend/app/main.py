@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .dependencies import get_session, DBSession, lifespan
-from .database import *
+from .dependencies import *
 from .models import *
 
 from typing import Union, Annotated
