@@ -2,13 +2,16 @@
     import { page } from '$app/stores';
     import { focusTrap } from '@skeletonlabs/skeleton';
     import { fade, fly } from 'svelte/transition';
+    import { quintIn, quintOut } from 'svelte/easing';
     
     export let form;
     $: errorMessage = form?.error;
 </script>
 
-<div class="flex items-center justify-center h-full w-full max-w-md mx-auto px-4">
-    <div class="card w-full p-8 shadow-xl" in:fly="{{ y: 50, duration: 400 }}" out:fade>
+<div class="flex items-start justify-center h-full w-full max-w-md mx-auto px-4 py-8">
+    <div class="card w-full p-8 shadow-xl"
+        in:fly="{{ x: -100, duration: 400, delay: 200, easing: quintOut }}"
+        out:fly="{{ x: 100, duration: 400, easing: quintIn }}">
         <header class="text-center mb-8">
             <h1 class="h1 font-bold mb-2">Create Account</h1>
             <p class="text-surface-600-300-token">Join QuickHire today</p>

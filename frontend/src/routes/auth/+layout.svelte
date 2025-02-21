@@ -17,7 +17,7 @@
             <LightSwitch />
         </header>
 
-        <main class="flex-1 flex items-center justify-center p-4 relative z-10">
+        <main class="flex-1 overflow-y-auto flex items-start justify-center p-4 relative z-10 min-h-0">
             <slot />
         </main>
 
