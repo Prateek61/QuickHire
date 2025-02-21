@@ -17,8 +17,10 @@
             <LightSwitch />
         </header>
 
-        <main class="flex-1 overflow-y-auto flex items-start justify-center p-4 relative z-10 min-h-0">
-            <slot />
+        <main class="flex-1 relative z-10 min-h-0" style="perspective: 1500px;">
+            <div class="relative w-full h-full">
+                <slot />
+            </div>
         </main>
 
         <footer class="auth-footer p-6 text-center relative z-10">

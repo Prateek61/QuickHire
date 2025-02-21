@@ -8,10 +8,28 @@
     $: errorMessage = form?.error;
 </script>
 
-<div class="flex items-start justify-center h-full w-full max-w-md mx-auto px-4 py-8">
-    <div class="card w-full p-8 shadow-xl"
-        in:fly="{{ x: -100, duration: 400, delay: 200, easing: quintOut }}"
-        out:fly="{{ x: 100, duration: 400, easing: quintIn }}">
+<div class="absolute inset-0 flex items-start justify-center p-4 overflow-y-auto">
+    <div class="card w-full max-w-md p-8 shadow-xl my-8"
+        style="transform-style: preserve-3d; backface-visibility: hidden;"
+        in:fly="{{
+            x: -200,
+            y: 0,
+            duration: 800,
+            delay: 300,
+            easing: quintOut,
+            opacity: 1,
+            scale: 1,
+            rotate: 0
+        }}"
+        out:fly="{{
+            x: 200,
+            y: 100,
+            duration: 600,
+            easing: quintIn,
+            opacity: 0.2,
+            scale: 0.85,
+            rotate: 5
+        }}">
         <header class="text-center mb-8">
             <h1 class="h1 font-bold mb-2">Create Account</h1>
             <p class="text-surface-600-300-token">Join QuickHire today</p>
