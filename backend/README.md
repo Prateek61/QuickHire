@@ -22,8 +22,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Create database tables
+
+```bash
+python scripes/create_tables.py
+```
+
 ### Run the application
 
 ```bash
-fastapi dev main.py
+fastapi dev app
 ```
