@@ -78,7 +78,7 @@ class Users(BaseSchema):
     email = Text(required=True, unique=True)
     phone_no = Text(required=True, unique=True)
     password_hash = Text(required=True)
-    first_name = Varchar(50, required=False)
+    first_name = Varchar(50, required=False, allow_none=True)
     last_name = Varchar(50, required=False)
     is_active = Boolean(default=True, required=True)
     birthday = Date(required=False)

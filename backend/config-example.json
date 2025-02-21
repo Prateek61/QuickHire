@@ -6,5 +6,7 @@
         "password": "postgres",
         "database": "dbms_proj"
     },
-    "db_log": true
+    "db_log": true,
+    "jwt_secret": "your-secure-secret-key",
+    "jwt_expire_minutes": 30
 }

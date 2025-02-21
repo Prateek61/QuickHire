@@ -445,9 +445,6 @@ class QueryHelper:
         """Execute a query without returning results."""
         query_str = query.construct_query(session=session)
 
-        if force_log:
-            print(f"Execting Query: {query_str}")
-
         session.execute(query_str, force_log=force_log)
 
     @staticmethod

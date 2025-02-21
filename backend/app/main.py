@@ -1,11 +1,8 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .dependencies import get_session, DBSession, lifespan 
+from .dependencies import get_session, DBSession, lifespan, get_token_from_header
 
-from typing import Union, Annotated
-
-# Dependency
-SessionDep = Annotated[DBSession, Depends(get_session)]
+from typing import Union, Annotated, Optional
 
 app = FastAPI(lifespan=lifespan)
 

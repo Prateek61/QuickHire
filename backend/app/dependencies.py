@@ -1,7 +1,10 @@
-from typing import Annotated, Dict, Any, Generator
+from typing import Annotated, Dict, Any, Generator, Optional
 
+from pydantic import BaseModel
+from fastapi import Depends, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from contextlib import asynccontextmanager
-from fastapi import Header, HTTPException, FastAPI
+from fastapi import Header, FastAPI
 from database import *
 import json
 
@@ -24,3 +27,25 @@ async def lifespan(app: FastAPI):
 def get_session() -> Generator[DBSession, None, None]:
     with engine.session() as s:
         yield s
+
+security = HTTPBearer()
+
+async def get_token_from_header(
+    authorization: HTTPAuthorizationCredentials = Security(security),
+) -> Optional[str]:
+    """Extract JWT token from the Authorization header"""
+    if not authorization:
+        return None
+    
+    if not authorization or not authorization.scheme.lower() == "bearer":
+        return None
+    
+    credentials = authorization.credentials
+    if not credentials:
+        return None
+        
+    return credentials
+
+# Dependency
+SessionDep = Annotated[DBSession, Depends(get_session)]
+TokenDep = Annotated[Optional[str], Depends(get_token_from_header)]

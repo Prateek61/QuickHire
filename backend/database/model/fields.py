@@ -52,6 +52,14 @@ class DatabaseFieldBase(fields.Field, ABC):
         self._default = default
         self._db_allow_null = self.allow_none
 
+    @classmethod
+    def kwargs_init(cls, **kwargs) -> Dict:
+        """Initialize some kwargs
+        """
+
+        kwargs['allow_none'] = not kwargs.get('required', False)
+        return kwargs
+
     @property
     def db_column(self) -> Optional[str]:
         """Get the database column name."""
@@ -122,6 +130,7 @@ class PrimaryKey(DatabaseFieldBase, fields.Integer):
     def __init__(self, big: bool = False, **kwargs):
         """Initialize primary key field."""
         kwargs['required'] = True
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.Integer.__init__(self, **kwargs)
         self._big = big
@@ -143,6 +152,7 @@ class Integer(DatabaseFieldBase, fields.Integer):
         """Initialize integer field."""
         if big and small:
             raise ValueError("Field cannot be both big and small")
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.Integer.__init__(self, **kwargs)
         self._big = big
@@ -160,6 +170,7 @@ class Text(DatabaseFieldBase, fields.String):
     """Text field for storing strings of any length."""
     
     def __init__(self, **kwargs):
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.String.__init__(self, **kwargs)
 
@@ -172,6 +183,7 @@ class Varchar(DatabaseFieldBase, fields.String):
     
     def __init__(self, length: int, **kwargs):
         """Initialize varchar field."""
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         self._length = length
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.String.__init__(self, **kwargs)
@@ -203,6 +215,7 @@ class Boolean(DatabaseFieldBase, fields.Boolean):
     """Boolean field."""
     
     def __init__(self, **kwargs):
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.Boolean.__init__(self, **kwargs)
 
@@ -218,6 +231,7 @@ class Numeric(DatabaseFieldBase, fields.Decimal):
                  scale: Optional[int] = None,
                  **kwargs):
         """Initialize numeric field."""
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         self._precision = precision
         self._scale = scale
         DatabaseFieldBase.__init__(self, **kwargs)
@@ -257,6 +271,7 @@ class ForeignKey(DatabaseFieldBase, fields.Integer):
                  on_update: str = "",
                  **kwargs):
         """Initialize foreign key field."""
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         # Initialize base classes first
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.Integer.__init__(self, **kwargs)
@@ -322,6 +337,7 @@ class Date(DatabaseFieldBase, fields.Date):
     """Date field."""
     
     def __init__(self, **kwargs):
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.Date.__init__(self, **kwargs)
 
@@ -333,6 +349,7 @@ class Time(DatabaseFieldBase, fields.Time):
     """Time field."""
     
     def __init__(self, **kwargs):
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.Time.__init__(self, **kwargs)
 
@@ -346,13 +363,13 @@ class Timestamp(DatabaseFieldBase, fields.DateTime):
     def __init__(self,
                  auto_now: bool = False,
                  auto_now_add: bool = False,
-                 allow_none: bool = True,
                  **kwargs):
         """Initialize timestamp field."""
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         self._auto_now = auto_now
         self._auto_now_add = auto_now_add
         DatabaseFieldBase.__init__(self, **kwargs)
-        fields.DateTime.__init__(self, allow_none=allow_none, **kwargs)
+        fields.DateTime.__init__(self, **kwargs)
 
     @property
     def db_type(self) -> DBType:
@@ -420,6 +437,7 @@ class JSON(DatabaseFieldBase, fields.Dict):
     
     def __init__(self, binary: bool = True, **kwargs):
         """Initialize JSON field."""
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
         self._binary = binary
         DatabaseFieldBase.__init__(self, **kwargs)
         fields.Dict.__init__(self, **kwargs)
@@ -443,6 +461,8 @@ class Array(DatabaseFieldBase):
         check=None,
         **kwargs
     ):
+        kwargs = DatabaseFieldBase.kwargs_init(**kwargs)
+
         # 1) Set up the inner marshmallow List field
         self._list_field = fields.List(item_field, **kwargs)
 
@@ -453,8 +473,7 @@ class Array(DatabaseFieldBase):
             unique=unique,
             index=index,
             default=default,
-            check=check,
-            allow_none=kwargs.get('allow_none', False),
+            check=check
         )
         self._dimensions = dimensions
         self._item_field = item_field

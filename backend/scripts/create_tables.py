@@ -11,6 +11,8 @@ def create_tables(tables: List[Type[BaseSchema]], session: DBSession):
         table.create_table(session)
         print(f"Table created: {table.__name__}")
 
+    session.commit()
+
 def main():
     conf = load_config("config.json")
     with DBEngine(config=conf['postgres'], log=conf["db_log"]) as engine:
