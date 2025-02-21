@@ -1,39 +1,21 @@
 from database import *
-from utils import *
-from models import *
+from models import TABLES
+from config import load_config
 
-from typing import List
+from typing import List, Type
 
-def print_query(query: Query, session: DBSession):
-    print(query.construct_query(session.cursor))
-
-def run_query(query: Query, session: DBSession):
-    session.cursor.execute(query.construct_query(session.cursor))
-
-create_tables: bool = False
-print_queries: bool = True
+def create_tables(tables: List[Type[BaseSchema]], session: DBSession):
+    for table in tables:
+        print(f"Creating table: {table.__name__}")
+        table.create_table(session)
+        print(f"Table created: {table.__name__}")
 
 def main():
-    conf = load_config('config.json')
-
-    tables: List[BaseSchema] = [
-        SkillsSchema(),
-        UsersSchema(),
-        ProfessionalsSchema(),
-        HiresSchema(),
-        ReviewsSchema()
-    ]
-
-    with DBEngine(config=conf['postgres'], autocommit=True) as engine:
+    conf = load_config()
+    with DBEngine(config=conf['postgres']) as engine:
         with engine.session() as session:
-            for table in tables:
-                query = table._get_table_creation_query()
+            create_tables(TABLES, session)
+    
 
-                if print_queries:
-                    print_query(query, session)
-                if create_tables:
-                    run_query(query, session)
-                session.commit()
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

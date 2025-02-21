@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Dict
 
 class DatabaseEngine:
-    def __init__(self, config: Dict[str, str] | None = None, url: str | None = None, autocommit: bool = True):
+    def __init__(self, config: Dict[str, str] | None = None, url: str | None = None, autocommit: bool = False):
         self.connection: PostgresConnection = PostgresConnection(config=config, url=url, autocommit=autocommit)
 
     def get_connection(self) -> PostgresConnection:

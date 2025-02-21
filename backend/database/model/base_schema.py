@@ -326,16 +326,16 @@ class BaseSchema(Schema, ABC, Generic[T], metaclass=ModelSchemaMeta):
         """Create table and related objects (triggers, indexes, etc.)."""
         # Create table
         creation_query = cls._get_table_creation_query()
-        session.execute(creation_query.construct_query(session))
+        QueryHelper.run(creation_query, session)
         
         # Create triggers
         for trigger_query in cls._get_trigger_creation_queries():
             trigger_query.set_end()
-            session.execute(trigger_query.construct_query(session))
+            QueryHelper.run(trigger_query, session)
         
         # Create indexes
         for index_sql in cls._get_indexes():
-            session.execute(index_sql)
+            QueryHelper.run(Query(index_sql), session)
 
     @classmethod
     def _bind_foreign_keys(cls):
@@ -444,10 +444,11 @@ class QueryHelper:
     def run(query: Query, session: DBSession, force_log: bool = True) -> None:
         """Execute a query without returning results."""
         query_str = query.construct_query(session=session)
-        session.cursor.execute(query_str)
 
         if force_log:
-            print(f"Executed Query: {query_str}")
+            print(f"Execting Query: {query_str}")
+
+        session.cursor.execute(query_str)
 
     @staticmethod
     def fetch_one_raw(query: Query, session: DBSession) -> Optional[Dict[str, Any]]:
