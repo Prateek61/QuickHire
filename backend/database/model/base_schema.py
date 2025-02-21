@@ -325,7 +325,7 @@ class BaseSchema(Schema, ABC, Generic[T], metaclass=ModelSchemaMeta):
     def create_table(cls, session: DBSession):
         """Create table and related objects (triggers, indexes, etc.)."""
         # Create table
-        creation_query = cls._get_table_creation_query()
+        creation_query = cls._get_table_creation_query().set_end()
         QueryHelper.run(creation_query, session)
         
         # Create triggers
@@ -448,13 +448,12 @@ class QueryHelper:
         if force_log:
             print(f"Execting Query: {query_str}")
 
-        session.cursor.execute(query_str)
+        session.execute(query_str, force_log=force_log)
 
     @staticmethod
     def fetch_one_raw(query: Query, session: DBSession) -> Optional[Dict[str, Any]]:
         """Fetch a single row as a dictionary."""
-        query_str = query.construct_query(session=session)
-        session.cursor.execute(query_str)
+        QueryHelper.run(query, session)
         result = session.cursor.fetchone()
         if result:
             return {key: result[key] for key in result.keys()}
@@ -463,8 +462,7 @@ class QueryHelper:
     @staticmethod
     def fetch_multiple_raw(query: Query, session: DBSession) -> List[Dict[str, Any]]:
         """Fetch multiple rows as dictionaries."""
-        query_str = query.construct_query(session=session)
-        session.cursor.execute(query_str)
+        QueryHelper.run(query, session)
         results = session.cursor.fetchall()
         return [{key: row[key] for key in row.keys()} for row in results]
     

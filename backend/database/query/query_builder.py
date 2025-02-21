@@ -41,6 +41,8 @@ def _format_value(value: Any) -> Any:
     """Format a value for use in a query."""
     if isinstance(value, AsIs):
         return value
+    if isinstance(value, Statement):
+        return AsIs(value.alias) if value.alias else value._get()
     if isinstance(value, Alias):
         return value._get()
     return value

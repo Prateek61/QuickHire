@@ -1,10 +1,17 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from .dependencies import get_session, DBSession, lifespan
+from .database import *
+from .models import *
 
-from typing import Union
+from typing import Union, Annotated
 
-app = FastAPI()
+# Dependency
+SessionDep = Annotated[DBSession, Depends(get_session)]
 
+app = FastAPI(lifespan=lifespan)
+
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,6 +24,11 @@ app.add_middleware(
 def read_root():
     return {"Hello": "World"}
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/query")
+def read_query(session: SessionDep):
+    q = Select(Users).where(
+        Condition().eq(Users.col("id"), 1)
+    ).get_query().set_end()
+    return {
+        "query": q.construct_query(session)
+    }

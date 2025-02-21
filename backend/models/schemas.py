@@ -1,8 +1,11 @@
-from database import *
+from ..database import *
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from typing import List
+
+# Typevar which is BaseSchema
+T = TypeVar('T', bound=BaseSchema)
 
 @dataclass
 class UserData(BaseDataClass):
