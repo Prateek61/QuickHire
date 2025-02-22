@@ -1,11 +1,20 @@
 import { redirect } from "@sveltejs/kit";
-import { auth } from "$lib/auth_store";
+import { authStore, auth } from "$lib/auth_store";
 import { PUBLIC_API_URL } from "$env/static/public";
+import { get } from 'svelte/store';
+
+export const ssr = false;
 
 /** @type {import('./$types').PageLoad} */
-export const load = async ({ params, fetch }) => {
+export const load = async () => {
+    if (!auth.isLoggedIn()) {
+        throw redirect(302, '/')
+    }
+
     try {
-        const url = `${PUBLIC_API_URL}/professionals/${params.username}`;
+        const user = await auth.fetchUser();
+
+        const url = `${PUBLIC_API_URL}/professionals/${user.username}`;
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -37,7 +46,6 @@ export const load = async ({ params, fetch }) => {
 
         const reviews = await reviewsresponse.json();
 
-        // const reviews = [];
 
         return {
             props: {
@@ -47,7 +55,6 @@ export const load = async ({ params, fetch }) => {
             }
         }
     } catch (error) {
-        // throw redirect(302, '/');
         console.error(error)
         return {
             props: {

@@ -111,3 +111,30 @@ async def get_professional_reviews(
             review=r['review']
         ) for r in res
     ]
+
+@router.get("/professionals/{professional_id}", response_model=List[ReviewResponse])
+async def get_professional_reviews_by_id(
+    professional_id: int,
+    session: SessionDep
+):
+    query = Select(
+        Reviews,
+        *Reviews.all_cols(),
+        Users.col("username"),
+        Users.col("profile_pic_url")
+    ).join(Hires).join(Professionals).join(Users).where(
+        Condition().eq(Professionals.col("id"), professional_id)
+    ).get_query()
+
+    res = QueryHelper.fetch_multiple_raw(query, session)
+
+    return [
+        ReviewResponse(
+            id=r['id'],
+            hire_id=r['hire_id'],
+            rating=r['rating'],
+            reviewer_name=r['username'],
+            reviewer_profile_pic=r['profile_pic_url'],
+            review=r['review']
+        ) for r in res
+    ]

@@ -6,25 +6,7 @@
 
 	const professionalData = data.props.professional
 
-	// Mock reviews data - replace with your API call
-	let reviews = [
-		{
-			id: 1,
-			hire_id: 1,
-			rating: 5,
-			reviewer_name: 'John Doe',
-			reviewer_profile_pic: null,
-			review: 'Excellent work ethic and very professional. Would hire again!'
-		},
-		{
-			id: 2,
-			hire_id: 2,
-			rating: 4,
-			reviewer_name: 'Jane Smith',
-			reviewer_profile_pic: null,
-			review: 'Great communication and delivered on time.'
-		}
-	];
+	let reviews = data.props.reviews
 
 	let isLoading = false;
 
