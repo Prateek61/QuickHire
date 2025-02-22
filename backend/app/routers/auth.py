@@ -5,6 +5,7 @@ from ..dependencies import SessionDep, TokenDep, Select, Condition, QueryHelper,
 from ..models import Users, UserData
 from ..utils.create_password_hash import create_password_hash, check_password
 from ..utils.jwt import create_jwt_token
+from datetime import datetime
 
 from typing import List, Optional
 
@@ -20,6 +21,8 @@ class UserCreate(BaseModel):
     password: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    birthday: Optional[datetime] = None
+    profile_pic_url: Optional[str] = None
 
 class UserLogin(BaseModel):
     username: str
@@ -51,7 +54,9 @@ async def register(user: UserCreate, session: SessionDep):
         phone_no=user.phone_no,
         password_hash=password_hash,
         first_name=user.first_name,
-        last_name=user.last_name
+        last_name=user.last_name,
+        birthday=user.birthday,
+        profile_pic_url=user.profile_pic_url
     )
 
     try:

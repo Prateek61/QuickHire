@@ -18,8 +18,55 @@
 	let confirmPassword = '';
 	let passwordStrength = 0;
 	let imagePreview = '';
-
 	let uploading = false;
+	let loading = false;
+
+
+	/** @type {import('./$types').PageData} */
+	export let data;
+
+	const handleSubmit = async (event) => {
+		event.preventDefault();
+		loading = true;
+		errorMessage = '';
+
+		const formDataForm = new FormData(event.target);
+		formDataForm.delete('passwordConfirm');
+
+		// Convert FormData to JSON
+		let formData = {};
+		for (const [key, value] of formDataForm.entries()) {
+			if (key === 'birthday') {
+				if (value !== '' && value)
+				{
+					const date = new Date(value);
+					formData[key] = date.toISOString();
+				}
+				continue;
+			}
+			formData[key] = value;
+		}
+
+		try {
+			const result = await data.registerAction({ formData });
+			if (result.success) {
+				const t = {
+					message: 'Account created successfully',
+					background: 'variant-filled-success',
+					duration: 3000
+				};
+				toastStore.trigger(t);
+				goto('/');
+			} else {
+				errorMessage = result.error;
+			}
+		} catch (error) {
+			errorMessage = 'An error occurred while creating your account. Please try again later.';
+			console.error(error);
+		} finally {
+			loading = false;
+		}
+	}
 
 	const handleImageUpload = async (e) => {
 		try {
@@ -99,7 +146,7 @@
 				</div>
 			{/if}
 
-			<form method="POST" action="?/register" class="space-y-6">
+			<form on:submit={handleSubmit} class="space-y-6">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<!-- Left Column -->
 					<div class="space-y-6">
@@ -115,8 +162,7 @@
 								<input
 									type="text"
 									id="firstName"
-									name="firstName"
-									required
+									name="first_name"
 									class="block w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-blue-300 text-white text-sm transition-all duration-300"
 									placeholder="Enter your first name"
 								/>
@@ -134,8 +180,7 @@
 								<input
 									type="text"
 									id="lastName"
-									name="lastName"
-									required
+									name="last_name"
 									class="block w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-blue-300 text-white text-sm transition-all duration-300"
 									placeholder="Enter your last name"
 								/>
@@ -152,7 +197,7 @@
 								<input
 									type="text"
 									id="username"
-									name="name"
+									name="username"
 									required
 									class="block w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-blue-300 text-white text-sm transition-all duration-300"
 									placeholder="Enter your username"
@@ -191,7 +236,6 @@
 									type="date"
 									id="birthday"
 									name="birthday"
-									required
 									class="block w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-blue-300 text-white text-sm transition-all duration-300"
 								/>
 							</div>
@@ -439,7 +483,7 @@
 					type="hidden"
 					bind:value={imagePreview}
 					id="profileImageUrl"
-					name="profileImageUrl"
+					name="profile_pic_url"
 				/>
 
 				<!-- Submit Button -->

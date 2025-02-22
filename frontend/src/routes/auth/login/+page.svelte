@@ -11,6 +11,7 @@
 	let errorMessage = '';
 	let loading = false;
 	let showPassword = false;
+	const toastStore = getToastStore();
 
 	async function handleSubmit(event) {
 		event.preventDefault();
@@ -21,9 +22,8 @@
 		const username = formData.get('username');
 		const password = formData.get('password');
 
-		const toastStore = getToastStore();
-
 		try {
+			
 			const result = await data.loginAction({ username, password });
 			if (result.success) {
 				const t = {
