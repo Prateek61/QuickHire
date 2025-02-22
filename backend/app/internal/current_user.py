@@ -1,19 +1,14 @@
 from pydantic import BaseModel
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from ..utils.jwt import verify_jwt_token
 from typing import Optional
 from ..dependencies import SessionDep, TokenDep, Select, Condition, QueryHelper, Security, security
 from ..models import Users, UserData
 
-class SafeUser(BaseModel):
-    username: str
-    email: str
-    phone_no: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+from typing import Annotated
 
-async def get_current_user(session: SessionDep, token: TokenDep) -> SafeUser:
+async def get_current_user(session: SessionDep, token: TokenDep) -> UserData:
     if not token:
         raise HTTPException(
             status_code=401,
@@ -39,10 +34,6 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> SafeUser:
             detail="User not found"
         )
     
-    return SafeUser(
-        username=user.username,
-        email=user.email,
-        phone_no=user.phone_no,
-        first_name=user.first_name,
-        last_name=user.last_name
-    )
+    return user
+
+UserDep = Annotated[UserData, Depends(get_current_user)]

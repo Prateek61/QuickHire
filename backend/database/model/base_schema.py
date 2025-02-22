@@ -189,9 +189,9 @@ class BaseSchema(Schema, ABC, Generic[T], metaclass=ModelSchemaMeta):
         return cls._declared_fields
     
     @classmethod
-    def col(cls, field_name: str) -> AsIs:
+    def col(cls, field_name: str, alias: str = None) -> AsIs:
         """Get fully qualified column name."""
-        return AsIs(f'{cls._table()}.{cls._get_col(field_name)}')
+        return AsIs(f'{cls._table()}.{cls._get_col(field_name)}{' AS ' + alias if alias else ''}')
 
     @classmethod
     def _get_col_from_field(cls, field: DatabaseFieldBase) -> str:
@@ -214,11 +214,6 @@ class BaseSchema(Schema, ABC, Generic[T], metaclass=ModelSchemaMeta):
         if fields[field_name].db_column:
             return fields[field_name].db_column
         return field_name
-    
-    @classmethod
-    def col(cls, field_name: str) -> str:
-        """Get fully qualified column name."""
-        return AsIs(f'{cls._table()}.{cls._get_col(field_name)}')
 
     @classmethod
     def _get_column_names(cls) -> List[str]:

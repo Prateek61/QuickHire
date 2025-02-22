@@ -55,8 +55,8 @@ class TableAlias(Alias):
     def _get(self) -> AsIs:
         return AsIs(self.alias)
     
-    def col(self, name: str) -> AsIs:
-        return AsIs(f'{self.alias}.{self.table._get_col(name)}')
+    def col(self, name: str, alias: str = None) -> AsIs:
+        return AsIs(f'{self.alias}.{self.table._get_col(name)} {f"AS {alias}" if alias else ""}')
 
     def _get_col(self, name: str) -> str:
         return self.table._get_col(name)

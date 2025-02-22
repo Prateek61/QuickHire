@@ -89,9 +89,24 @@ async def login(user_login: UserLogin, session: SessionDep):
 
     return TokenResponse(access_token=token)
 
-from ..internal.current_user import SafeUser, get_current_user
+from ..internal.current_user import UserData, UserDep
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    phone_no: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
 
 # Protected route example
-@router.get("/me", response_model=SafeUser)
-async def get_current_user_info(current_user: SafeUser = Depends(get_current_user)):
-    return current_user
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_info(current_user: UserDep):
+    return UserResponse(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+        phone_no=current_user.phone_no,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name
+    )
