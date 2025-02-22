@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { goto } from '$app/navigation';
-import { PUBLIC_API_URL } from '$lib/constants';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 // Auth store for managing user state
 export const authStore = writable({
@@ -141,6 +141,20 @@ export function createAuth(customFetch = fetch) {
 
             // goto('/');
             console.log("logout called")
+        },
+
+        async logoutfr() {
+            clearStoredToken();
+
+            authStore.update(state => ({
+                ...state,
+                user: null,
+                token: null,
+                isAuthenticated: false
+            }));
+
+            goto('/');
+            console.log("logout fr called")
         },
 
         isLoggedIn() {

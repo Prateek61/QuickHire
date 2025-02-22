@@ -100,13 +100,6 @@ class UserResponse(BaseModel):
     last_name: Optional[str] = None
 
 # Protected route example
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserData)
 async def get_current_user_info(current_user: UserDep):
-    return UserResponse(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email,
-        phone_no=current_user.phone_no,
-        first_name=current_user.first_name,
-        last_name=current_user.last_name
-    )
+    return current_user

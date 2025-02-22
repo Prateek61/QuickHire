@@ -9,8 +9,8 @@ export const load = async () => {
 
     return {
         // Return an action that can be used in the page component
-        loginAction: async ({ email, password }) => {
-            return auth.login(email, password);
+        loginAction: async ({ username, password }) => {
+            return await auth.login(username, password);
         }
     };
 };

@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { slide } from 'svelte/transition';
 
-	let isAuthenticated = false;
+	let isAuthenticated = true;
 	let user = {
 		name: 'John Doe',
 		avatar: '/placeholder.svg'
@@ -148,12 +148,7 @@
 								transition:slide|local={{ duration: 200 }}
 								class="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50"
 							>
-								<a href="/dashboard" class="dropdown-item group">
-									<span class="group-hover:translate-x-1 transition-transform inline-block">
-										Main Dashboard
-									</span>
-								</a>
-								<a href="/professional-dashboard" class="dropdown-item group">
+								<a href="/professionals/me" class="dropdown-item group">
 									<span class="group-hover:translate-x-1 transition-transform inline-block">
 										Professional Dashboard
 									</span>
