@@ -2,37 +2,9 @@
 	import { onMount } from 'svelte';
 	import { Star, MapPin, Calendar, Clock } from 'lucide-svelte';
 
-	// Mock professional data - replace with your API call
-	let professionalData = {
-		professional: {
-			user_id: 1,
-			skill_id: 3,
-			title: 'Senior Non-Sleeper',
-			experience: 3,
-			hourly_rate: '42',
-			location: 'Remote',
-			id: 1,
-			cover_letter: 'hmm',
-			is_available: true,
-			updated_at: '2025-02-22T15:29:43.216737',
-			created_at: '2025-02-22T15:29:43.216737'
-		},
-		user: {
-			username: 'Prateek',
-			email: 'prateekpoudel61@gmail',
-			phone_no: '9841234567',
-			id: 1,
-			first_name: 'Prateek',
-			last_name: 'Poudel',
-			profile_pic_url: null,
-			is_active: true
-		},
-		skill: {
-			name: 'Sleepdeprivation',
-			id: 3,
-			description: 'Professional all-nighter'
-		}
-	};
+	export let data;
+
+	const professionalData = data.props.professional
 
 	// Mock reviews data - replace with your API call
 	let reviews = [
