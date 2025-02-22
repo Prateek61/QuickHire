@@ -1,4 +1,5 @@
 <script>
+	import profile from '$lib/images/profile.jpg';
 	export let data;
 
 	// Mock data - replace with your API call
@@ -79,7 +80,7 @@
 					<div class="flex items-center justify-between pb-6 border-b">
 						<div class="flex items-center space-x-4">
 							<img
-								src={professionalData.user.profile_pic_url || `/placeholder.svg?height=64&width=64`}
+								src={professionalData.user.profile_pic_url || profile}
 								alt={professionalData.user.username}
 								class="w-16 h-16 rounded-full bg-primary-50 border-2 border-primary-200"
 							/>

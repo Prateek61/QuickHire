@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { Star, MapPin, Calendar, Clock } from 'lucide-svelte';
+	import profile from '$lib/images/profile.jpg';
 
 	export let data;
 
@@ -49,7 +50,7 @@
 				<div class="flex items-center gap-6">
 					<div class="relative">
 						<img
-							src={professionalData.user.profile_pic_url || `/placeholder.svg?height=128&width=128`}
+							src={professionalData.user.profile_pic_url || profile}
 							alt={professionalData.user.username}
 							class="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-lg"
 						/>
@@ -173,7 +174,7 @@
 								<div class="pb-6 border-b last:border-0 last:pb-0">
 									<div class="flex items-start gap-4">
 										<img
-											src={review.reviewer_profile_pic || `/placeholder.svg?height=40&width=40`}
+											src={review.reviewer_profile_pic || profile}
 											alt={review.reviewer_name}
 											class="w-10 h-10 rounded-full"
 										/>
