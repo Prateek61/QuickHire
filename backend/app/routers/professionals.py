@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from ..dependencies import SessionDep, TokenDep, Select, Condition, QueryHelper
+from ..dependencies import SessionDep, TokenDep, Select, Condition, QueryHelper, Statement
 from ..internal.current_user import UserData, UserDep
-from ..models import Professionals, ProfessionalData, Users, UserData, Skills, SkillData
+from ..models import Professionals, ProfessionalData, Users, UserData, Skills, SkillData, Reviews
 from pydantic import BaseModel
 
 from typing import List, Any, Optional, Dict
@@ -23,6 +23,7 @@ class ProfessionalResponse(BaseModel):
     professional: ProfessionalData
     user: UserData
     skill: SkillData
+    avg_rating: Optional[float] = None
 
 class ProfessionalCreate(BaseModel):
     skill_id: int
@@ -37,8 +38,10 @@ def get_professional_query() -> Select:
         Users,
         *Professionals.all_cols("p_"),
         *Skills.all_cols("s_"),
-        *Users.all_cols("u_")
-    ).join(Professionals).join(Skills)
+        *Users.all_cols("u_"),
+        Statement("AVG", Reviews.col("rating"), "avg_rating")
+    ).join(Professionals).join(Skills).join(Reviews, Condition().eq(Reviews.col("professional"), Professionals.col("id")), "LEFT")\
+    .group_by(Professionals.col("id"), Skills.col("id"), Users.col("id"))
 
 def deserialize_professionals_data(data: List[Dict[str, Any]]) -> List[ProfessionalResponse]:
     user_schema = Users(exclude=["password_hash"])
@@ -57,9 +60,10 @@ def deserialize_professionals_data(data: List[Dict[str, Any]]) -> List[Professio
         skill_data = skill_schema.load(
             {key.replace("s_", ""): value for key, value in item.items() if key.startswith("s_")}
         )
+        avg_rating = item.get("avg_rating", None)
 
         res.append(
-            ProfessionalResponse(professional=prof_data, user=user_data, skill=skill_data)
+            ProfessionalResponse(professional=prof_data, user=user_data, skill=skill_data, avg_rating=avg_rating)
         )
 
     return res

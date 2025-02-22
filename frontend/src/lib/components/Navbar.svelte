@@ -2,12 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { slide } from 'svelte/transition';
-
-	let isAuthenticated = true;
-	let user = {
-		name: 'John Doe',
-		avatar: '/placeholder.svg'
-	};
+	import { authStore, auth } from '$lib/auth_store';
 
 	let activePath = '';
 	let isMenuOpen = false;
@@ -52,7 +47,7 @@
 	});
 
 	const handleLogout = () => {
-		isAuthenticated = false;
+		auth.logoutfr();
 	};
 </script>
 
@@ -114,7 +109,7 @@
 					About
 				</a>
 
-				{#if isAuthenticated}
+				{#if $authStore.isAuthenticated}
 					<!-- Dashboard Dropdown -->
 					<!-- svelte-ignore a11y-no-static-element-interactions -->
 					<div
@@ -173,11 +168,11 @@
 							class="flex items-center space-x-2 text-gray-600 hover:text-primary-600 focus:outline-none"
 						>
 							<img
-								src={user.avatar || '/placeholder.svg'}
+								src={$authStore.user.profile_pic_url || '/placeholder.svg'}
 								alt="Profile"
 								class="w-8 h-8 rounded-full border-2 border-primary-200"
 							/>
-							<span class="font-medium">{user.name}</span>
+							<span class="font-medium">{$authStore.user.username}</span>
 							<svg
 								class="w-4 h-4 transition-transform duration-200 {profileHovered
 									? 'rotate-180'
@@ -268,17 +263,17 @@
 					About
 				</a>
 
-				{#if isAuthenticated}
+				{#if $authStore.isAuthenticated}
 					<div class="border-t border-gray-200 pt-4 mt-4">
 						<div class="px-4 py-2">
 							<div class="flex items-center space-x-3">
 								<img
-									src={user.avatar || '/placeholder.svg'}
+									src={$authStore.user.profile_pic_url || '/placeholder.svg'}
 									alt="Profile"
 									class="w-10 h-10 rounded-full border-2 border-primary-200"
 								/>
 								<div>
-									<p class="font-medium text-gray-900">{user.name}</p>
+									<p class="font-medium text-gray-900">{$authStore.user.name}</p>
 									<p class="text-sm text-gray-500">View Profile</p>
 								</div>
 							</div>
