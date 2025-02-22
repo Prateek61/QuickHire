@@ -77,7 +77,7 @@ hire: List[HireData] = [
     HireData(
         client_id=1,
         professional_id=0,
-        status="active",
+        status="completed",
         start_date=datetime.now(),
         end_date=datetime.now() + timedelta(days=7),
         total_hours=40,
