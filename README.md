@@ -19,8 +19,7 @@
 QuickHire is designed to provide instant access to skilled professionals with an easy-to-use interface and advanced filtering options. With **reviews, ratings ⭐, and professional portfolios**, clients can make well-informed hiring decisions within seconds!
 
 ## 🔥 Features
-✅ **User Authentication**: Secure login and registration for both clients and professionals. 🔐  
-✅ **Advanced Search**: Filter professionals based on skills, location 📍, price 💰, rating ⭐, and experience.  
+✅ **User Authentication**: Secure login and registration for both clients and professionals. 🔐    
 ✅ **Hire Request System**: Clients can send hire requests that professionals can accept or decline.  
 ✅ **Job Review System**: Users can provide feedback and ratings for completed jobs.  
 ✅ **Professional Portfolio**: Showcase skills, certifications, and client reviews.  
@@ -40,6 +39,7 @@ QuickHire is designed to provide instant access to skilled professionals with an
 🗄 **PostgreSQL**: A powerful relational database.  
 🎨 **SvelteKit**: Ultra-fast frontend framework.  
 🎭 **SvelteUI**: Stylish UI components for a modern feel.  
+💨 **Tailwind CSS**: Utility-first CSS framework for rapid UI development.  
 📦 **Docker**: Ensures smooth deployment.  
 
 ## 🎯 Expected Output
@@ -48,7 +48,7 @@ The QuickHire platform will revolutionize the way professionals and clients conn
 ## ⚙️ Installation
 ```bash
 # Clone the repository
-🔥 git clone https://github.com/yourusername/quickhire.git
+🔥 git clone https://github.com/Prateek61/QuickHire.git
 cd quickhire
 
 # Install dependencies
@@ -69,7 +69,6 @@ cd quickhire
 1️⃣ **Register/Login** to create an account.  
 2️⃣ **Browse** available professionals.  
 3️⃣ **Send Hire Requests** to professionals.  
-4️⃣ **Track and Manage** your hiring history.  
 5️⃣ **Provide Reviews** after job completion.  
 
 ## 👨‍💻 Contributors
@@ -79,4 +78,3 @@ cd quickhire
 
 ## 📜 License
 🔓 This project is licensed under the **MIT License**.
-
