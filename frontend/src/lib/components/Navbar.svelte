@@ -1,6 +1,6 @@
 <script>
 	import '../../app.postcss';
-
+	import { authStore } from '$lib/auth_store';
 	let searchQuery = '';
 	import SearchIcon from '$lib/images/search.png';
 	import { onMount } from 'svelte';
@@ -15,6 +15,14 @@
 		});
 	});
 </script>
+
+{#if $authStore.isAuthenticated}
+<!-- Authenticated Navbar -->
+{:else if $authStore.isAuthenticating}
+<!-- Loading Navbar -->
+{:else}
+<!-- Unauthenticated Navbar -->
+{/if}
 
 <nav class="bg-gradient-to-r from-blue-900 to-blue-800 shadow-lg">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

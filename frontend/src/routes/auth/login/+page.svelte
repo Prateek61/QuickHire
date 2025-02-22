@@ -1,8 +1,9 @@
 <script>
 	import { goto } from '$app/navigation';
-	import IconEmail from '~icons/mdi/email';
+	import IconUser from '~icons/mdi/account';
 	import IconLock from '~icons/mdi/lock';
 	import IconHome from '~icons/mdi/home';
+	import { getToastStore } from '@skeletonlabs/skeleton';
 
 	/** @type {import('./$types').PageData} */
 	export let data;
@@ -17,18 +18,27 @@
 		errorMessage = '';
 
 		const formData = new FormData(event.target);
-		const email = formData.get('email');
+		const username = formData.get('username');
 		const password = formData.get('password');
 
+		const toastStore = getToastStore();
+
 		try {
-			const result = await data.loginAction({ email, password });
+			const result = await data.loginAction({ username, password });
 			if (result.success) {
+				const t = {
+					message: 'Logged in successfully',
+					background: 'variant-filled-success',
+					duration: 3000
+				}
+				toastStore.trigger(t)
 				goto('/');
 			} else {
 				errorMessage = result.error;
 			}
 		} catch (error) {
-			errorMessage = 'An unexpected error occurred. Please try again.';
+			errorMessage = "An error occurred while logging in. Please try again later.";
+			console.error(error);
 		} finally {
 			loading = false;
 		}
@@ -70,20 +80,20 @@
 			{/if}
 
 			<form on:submit={handleSubmit} class="space-y-6">
-				<!-- Email Input -->
+				<!-- Username Input -->
 				<div class="space-y-2">
-					<label for="email" class="block text-sm font-medium text-blue-200">Email Address</label>
+					<label for="username" class="block text-sm font-medium text-blue-200">Username</label>
 					<div class="relative">
 						<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-							<IconEmail class="h-5 w-5 text-blue-300" />
+							<IconUser class="h-5 w-5 text-blue-300" />
 						</div>
 						<input
-							type="email"
-							id="email"
-							name="email"
+							type="text"
+							id="username"
+							name="username"
 							required
 							class="block w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-blue-300 text-white text-sm transition-all duration-300"
-							placeholder="Enter your email"
+							placeholder="Enter your username"
 						/>
 					</div>
 				</div>

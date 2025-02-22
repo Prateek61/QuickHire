@@ -143,6 +143,20 @@ export function createAuth(customFetch = fetch) {
             console.log("logout called")
         },
 
+        async logoutfr() {
+            clearStoredToken();
+
+            authStore.update(state => ({
+                ...state,
+                user: null,
+                token: null,
+                isAuthenticated: false
+            }));
+
+            goto('/');
+            console.log("logout fr called")
+        },
+
         isLoggedIn() {
             return !!this.getToken();
         },
