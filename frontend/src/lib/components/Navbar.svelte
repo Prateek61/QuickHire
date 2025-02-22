@@ -43,10 +43,10 @@
 				<input
 					type="text"
 					bind:value={searchQuery}
-					placeholder="Search.."
-					class="h-[35px] w-[200px] border-none rounded-[20px] pl-[10px]"
+					placeholder="Search professionals..."
+					class=" h-[40px] w-[300px] border-none rounded-[20px] pl-[20px]"
 				/>
-				<button class="h-[35px] w-[50px] border-none bg-[#efb036] text-[#23486a] font-bold cursor-pointer rounded-tr-[20px] rounded-br-[20px] ml-[-50px]">
+				<button class="h-[40px] w-[50px] border-none bg-[#efb036] text-[#23486a] font-bold cursor-pointer rounded-tr-[20px] rounded-br-[20px] ml-[-50px]">
 					<img class="ml-[12px] h-[20px] w-[20px]" src="{SearchIcon}" alt="Search Icon" />
 				</button>
 			</div>
