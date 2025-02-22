@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { slide } from 'svelte/transition';
 	import { authStore, auth } from '$lib/auth_store';
+	import profile from '$lib/Images/profile.jpg';
 
 	let activePath = '';
 	let isMenuOpen = false;
@@ -168,7 +169,7 @@
 							class="flex items-center space-x-2 text-gray-600 hover:text-primary-600 focus:outline-none"
 						>
 							<img
-								src={$authStore.user.profile_pic_url || '/placeholder.svg'}
+								src={$authStore.user.profile_pic_url || profile}
 								alt="Profile"
 								class="w-8 h-8 rounded-full border-2 border-primary-200"
 							/>
@@ -268,7 +269,7 @@
 						<div class="px-4 py-2">
 							<div class="flex items-center space-x-3">
 								<img
-									src={$authStore.user.profile_pic_url || '/placeholder.svg'}
+									src={$authStore.user.profile_pic_url || profile}
 									alt="Profile"
 									class="w-10 h-10 rounded-full border-2 border-primary-200"
 								/>
