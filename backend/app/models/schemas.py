@@ -12,7 +12,7 @@ class UserData(BaseDataClass):
     username: str
     email: str
     phone_no: str
-    password_hash: str
+    password_hash: str = field(default=None)
     id: int = field(default=0)
     first_name: str = field(default=None)
     last_name: str = field(default=None)

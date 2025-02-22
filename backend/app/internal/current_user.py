@@ -34,6 +34,7 @@ async def get_current_user(session: SessionDep, token: TokenDep) -> UserData:
             detail="User not found"
         )
     
+    user.password_hash = None
     return user
 
 UserDep = Annotated[UserData, Depends(get_current_user)]

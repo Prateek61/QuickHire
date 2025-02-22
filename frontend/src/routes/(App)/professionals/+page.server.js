@@ -1,39 +1,36 @@
-import PocketBase from 'pocketbase';
-import { redirect } from '@sveltejs/kit';
+import { PUBLIC_API_URL } from '$env/static/public';
 
-export async function load() {
-    const pb = new PocketBase('http://localhost:8090');
-
+export async function load({ fetch }) {
     try {
-        const results = await pb.collection('professional').getFullList({
-            expand: 'user,skill'
+        const url = `${PUBLIC_API_URL}/professionals`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include'
         });
 
-        let professionals_list = [];
-
-        // loop through the results and format the data
-        for (let result of results) {
-            // console.log('result:', result); // Log the result to check the structure
-            // console.log('expanded user:', result.expand.user); // Log the expanded user field
-
-            let professional = {
-                id: result.id,
-                name: result.expand.user ? result.expand.user.name : 'Unknown', // Check if user is expanded
-                skill: result.expand.skill ? result.expand.skill.name : 'Unknown', // Check if skill is expanded
-                hourly_rate: result.hourly_rate,
-                experience: result.experience,
-            };
-
-            professionals_list.push(professional);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to fetch professionals');
         }
 
+        const professionals_data = await response.json();
+
         return {
-            professionals: professionals_list
-        };
+            props: {
+                ok: true,
+                professionals: professionals_data
+            }
+        }
     } catch (error) {
-        console.error(error);
         return {
-            error: error.message
-        };
+            props: {
+                ok: false,
+                error: error.message
+            }
+        }
     }
 }

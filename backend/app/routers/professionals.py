@@ -20,18 +20,9 @@ class ProfessionalCreate(BaseModel):
     cover_letter: Optional[str] = None
 
 class ProfessionalResponse(BaseModel):
-    id: int
-    user_id: int
-    username: str
-    skill_id: int
-    skill_name: str
-    skill_description: Optional[str] = None
-    title: str
-    experience: int
-    hourly_rate: float
-    location: str
-    cover_letter: Optional[str] = None
-    is_available: bool
+    professional: ProfessionalData
+    user: UserData
+    skill: SkillData
 
 class ProfessionalCreate(BaseModel):
     skill_id: int
@@ -44,19 +35,34 @@ class ProfessionalCreate(BaseModel):
 def get_professional_query() -> Select:
     return Select(
         Users,
-        Professionals.col("id"),
-        Professionals.col("user_id"),
-        Users.col("username"),
-        Professionals.col("skill_id"),
-        Professionals.col("title"),
-        Professionals.col("experience"),
-        Professionals.col("hourly_rate"),
-        Professionals.col("location"),
-        Professionals.col("cover_letter"),
-        Professionals.col("is_available"),
-        Skills.col("name", "skill_name"),
-        Skills.col("description", "skill_description")
+        *Professionals.all_cols("p_"),
+        *Skills.all_cols("s_"),
+        *Users.all_cols("u_")
     ).join(Professionals).join(Skills)
+
+def deserialize_professionals_data(data: List[Dict[str, Any]]) -> List[ProfessionalResponse]:
+    user_schema = Users(exclude=["password_hash"])
+    prof_schema = Professionals()
+    skill_schema = Skills()
+
+    res = []
+
+    for item in data:
+        user_data = user_schema.load(
+            {key.replace("u_", ""): value for key, value in item.items() if key.startswith("u_") and key != "u_password_hash"}
+        )
+        prof_data = prof_schema.load(
+            {key.replace("p_", ""): value for key, value in item.items() if key.startswith("p_")}
+        )
+        skill_data = skill_schema.load(
+            {key.replace("s_", ""): value for key, value in item.items() if key.startswith("s_")}
+        )
+
+        res.append(
+            ProfessionalResponse(professional=prof_data, user=user_data, skill=skill_data)
+        )
+
+    return res
 
 @router.get("/", response_model=List[ProfessionalResponse])
 async def get_professionals(session: SessionDep):
@@ -64,9 +70,7 @@ async def get_professionals(session: SessionDep):
 
     res = QueryHelper.fetch_multiple_raw(query, session)
 
-    return [
-        ProfessionalResponse(**item) for item in res
-    ]
+    return deserialize_professionals_data(res)
 
 @router.post("/", response_model=ProfessionalResponse)
 async def create_professional(professional: ProfessionalCreate, user: UserDep, session: SessionDep):
@@ -113,19 +117,11 @@ async def create_professional(professional: ProfessionalCreate, user: UserDep, s
     
     session.commit()
 
+    user.password_hash = None
     return ProfessionalResponse(
-        id=new_prof.id,
-        user_id=new_prof.user_id,
-        username=user.username,
-        skill_id=new_prof.skill_id,
-        skill_name=skill.name,
-        skill_description=skill.description,
-        title=new_prof.title,
-        experience=new_prof.experience,
-        hourly_rate=new_prof.hourly_rate,
-        location=new_prof.location,
-        cover_letter=new_prof.cover_letter,
-        is_available=new_prof.is_available
+        professional=new_prof,
+        user=user,
+        skill=skill
     )
 
 @router.get("/id/{professional_id}", response_model=ProfessionalResponse)
@@ -142,7 +138,7 @@ async def get_professional(professional_id: int, session: SessionDep):
             detail="Professional not found"
         )
 
-    return ProfessionalResponse(**res)
+    return deserialize_professionals_data([res])[0]
 
 @router.get("/{professional_name}", response_model=ProfessionalResponse)
 async def get_professional_by_name(professional_name: str, session: SessionDep):
@@ -158,4 +154,4 @@ async def get_professional_by_name(professional_name: str, session: SessionDep):
             detail="Professional not found"
         )
 
-    return ProfessionalResponse(**res)
+    return deserialize_professionals_data([res])[0]

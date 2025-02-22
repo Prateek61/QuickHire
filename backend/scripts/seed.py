@@ -63,8 +63,8 @@ professionals: List[ProfessionalData] = [
         cover_letter="hmm"
     ),
     ProfessionalData(
-        user_id=1,
-        skill_id=0,
+        user_id=2,
+        skill_id=3,
         title="Duck",
         experience=1,
         hourly_rate=12,

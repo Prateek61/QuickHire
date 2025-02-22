@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { goto } from '$app/navigation';
-import { PUBLIC_API_URL } from '$lib/constants';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 // Auth store for managing user state
 export const authStore = writable({
