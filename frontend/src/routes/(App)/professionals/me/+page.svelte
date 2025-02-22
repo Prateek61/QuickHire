@@ -5,7 +5,7 @@
 	// Mock data - replace with your API call
 	let professionalData = data.props.professional;
 
-	console.log(data)
+	console.log(data);
 
 	let isEditing = false;
 	let formData = professionalData

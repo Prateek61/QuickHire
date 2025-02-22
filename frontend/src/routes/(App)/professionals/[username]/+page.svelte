@@ -5,22 +5,33 @@
 
 	export let data;
 
-	const professionalData = data.props.professional
+	const professionalData = data.props.professional;
 
-	let reviews = data.props.reviews
+	let reviews = data.props.reviews;
 
 	let isLoading = false;
+	let showHireForm = false;
+	let totalHours = '';
+	let totalAmount = '';
 
-	const handleHire = async () => {
-		isLoading = true;
-		try {
-			// Implement your hire logic here
-			console.log('Hiring professional:', professionalData.professional.id);
-		} catch (error) {
-			console.error('Error hiring professional:', error);
-		} finally {
-			isLoading = false;
+	const handleHire = () => {
+		if (showHireForm) {
+			showHireForm = false;
+		} else {
+			showHireForm = true;
 		}
+	};
+
+	const handleSubmitHireForm = () => {
+		// Handle form submission logic here
+		console.log('Hiring professional:', professionalData.professional.id, {
+			totalHours,
+			totalAmount
+		});
+		// Reset form and hide it
+		totalHours = '';
+		totalAmount = '';
+		showHireForm = false;
 	};
 
 	const formatDate = (dateString) => {
@@ -104,7 +115,77 @@
 			</div>
 		</div>
 	</div>
-
+	<!-- Hire Form -->
+	{#if showHireForm}
+		<div
+			class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+			fade={{ duration: 200 }}
+		>
+			<div
+				class="bg-white rounded-lg shadow-xl p-8 max-w-md w-full m-4"
+				fly={{ y: 20, duration: 300, easing: 'ease-out' }}
+			>
+				<h2 class="text-2xl font-bold text-gray-900 mb-6">Hire Professional</h2>
+				<form on:submit|preventDefault={handleSubmitHireForm} class="space-y-6">
+					<div class="space-y-2">
+						<label for="totalHours" class="block text-sm font-medium text-gray-700"
+							>Total Hours</label
+						>
+						<div class="relative">
+							<input
+								id="totalHours"
+								type="number"
+								bind:value={totalHours}
+								required
+								min="0"
+								step="1"
+								class="block w-full pl-4 pr-10 py-3 text-gray-900 placeholder-gray-400 border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ease-in-out"
+								placeholder="Enter total hours"
+							/>
+							<span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
+								hrs
+							</span>
+						</div>
+					</div>
+					<div class="space-y-2">
+						<label for="totalAmount" class="block text-sm font-medium text-gray-700"
+							>Total Amount</label
+						>
+						<div class="relative">
+							<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+								$
+							</span>
+							<input
+								id="totalAmount"
+								type="number"
+								bind:value={totalAmount}
+								required
+								min="0"
+								step="0.01"
+								class="block w-full pl-8 pr-4 py-3 text-gray-900 placeholder-gray-400 border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ease-in-out"
+								placeholder="Enter total amount"
+							/>
+						</div>
+					</div>
+					<button
+						type="submit"
+						class="w-full px-6 py-3 bg-primary-600 text-white rounded-md font-medium hover:bg-primary-700
+											transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600
+											transform hover:scale-105"
+					>
+						Submit Hire Request
+					</button>
+				</form>
+				<button
+					on:click={() => (showHireForm = false)}
+					class="mt-4 w-full px-6 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300
+										transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	{/if}
 	<!-- Main Content -->
 	<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -163,7 +244,6 @@
 					</div>
 				{/if}
 			</div>
-
 			<!-- Right Column - Reviews -->
 			<div class="space-y-6">
 				<div class="bg-white rounded-lg shadow-sm border p-6">
@@ -209,11 +289,12 @@
 </div>
 
 <style>
-	:root {
-		--primary-50: #f0f9ff;
-		--primary-100: #e0f2fe;
-		--primary-200: #bae6fd;
-		--primary-600: #0284c7;
-		--primary-700: #0369a1;
+	input[type='number']::-webkit-inner-spin-button,
+	input[type='number']::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+	input[type='number'] {
+		-moz-appearance: textfield;
 	}
 </style>
