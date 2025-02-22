@@ -4,3 +4,4 @@ psycopg2
 marshmallow # for serialization
 sqlparse
 bcrypt
+pyjwt

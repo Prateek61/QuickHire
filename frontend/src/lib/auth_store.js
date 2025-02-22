@@ -137,17 +137,17 @@ export function createAuth(customFetch = fetch) {
 		},
 
 		async logout() {
-			// clearStoredToken();
+			clearStoredToken();
 
-			// authStore.update(state => ({
-			//     ...state,
-			//     user: null,
-			//     token: null,
-			//     isAuthenticated: false
-			// }));
+			authStore.update(state => ({
+			    ...state,
+			    user: null,
+			    token: null,
+			    isAuthenticated: false
+			}));
 
-			// goto('/');
-			console.log('logout called');
+			goto('/');
+			// console.log('logout called');
 		},
 
 		async logoutfr() {

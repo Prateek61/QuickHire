@@ -3,26 +3,10 @@
 	import { fly } from 'svelte/transition';
 	import { Calendar, MapPin, Clock, DollarSign, Briefcase, Star } from 'lucide-svelte';
 
-	let hires = [
-		{
-			hire: {
-				client_id: 0,
-				professional_id: 0,
-				status: 'string',
-				start_date: '2025-02-22T15:41:44.752Z',
-				end_date: '2025-02-22T15:41:44.752Z',
-				total_hours: 0,
-				total_amount: 0,
-				id: 0,
-				updated_at: '2025-02-22T15:41:44.752Z',
-				created_at: '2025-02-22T15:41:44.752Z'
-			},
-			professional_username: 'string',
-			professional_title: 'string',
-			professional_location: 'string',
-			skill_name: 'string'
-		}
-	];
+	export let data;
+
+	let hires = data.props.hires;
+	
 	let loading = false;
 	let error = null;
 	let totalHires = 0;
