@@ -11,6 +11,7 @@
 		PUBLIC_APP_CLOUDINARY_API_KEY,
 		PUBLIC_APP_CLOUDINARY_CLOUD_NAME
 	} from '$env/static/public';
+	import { getToastStore } from '@skeletonlabs/skeleton';
 
 	let showPassword = false;
 	let showConfirmPassword = false;
@@ -24,6 +25,8 @@
 
 	/** @type {import('./$types').PageData} */
 	export let data;
+
+	const toastStore = getToastStore();
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();

@@ -4,6 +4,8 @@ from datetime import datetime, date, time
 from decimal import Decimal
 from typing import Any, Optional, Union, List, Dict, Type
 
+from marshmallow import ValidationError
+
 from marshmallow import fields, ValidationError
 import marshmallow
 from psycopg2.extensions import AsIs
@@ -344,6 +346,18 @@ class Date(DatabaseFieldBase, fields.Date):
     @property
     def db_type(self) -> DBType:
         return DBType.DATE
+        
+    def _deserialize(self, value, attr, data, **kwargs):
+        """Convert date string from database to date object."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            try:
+                year, month, day = map(int, value.split('-'))
+                return date(year, month, day)
+            except (ValueError, TypeError):
+                raise ValidationError('Not a valid date.')
+        return value
 
 class Time(DatabaseFieldBase, fields.Time):
     """Time field."""
