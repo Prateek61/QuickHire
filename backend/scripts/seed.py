@@ -12,43 +12,43 @@ users: List[UserData] = [
     UserData(
         username="Prateek",
         email="prateekpoudel61@gmail",
-        password_hash=create_password_hash("password"),
+        password_hash=create_password_hash("password111"),
         phone_no="9841234567",
         first_name="Prateek",
         last_name="Poudel"
     ),
     UserData(
         username="Malenia",
-        email="malenia@gmail",
-        password_hash=create_password_hash("password"),
+        email="maleniakhatri@gmail",
+        password_hash=create_password_hash("password222"),
         phone_no="9841234568",
         first_name="Malenia",
-        last_name="Blade of Miquella"
+        last_name="Khatri"
     ),
     UserData(
-        username="Duck",
-        email="duck@duckmail.com",
-        password_hash=create_password_hash("quack"),
+        username="john",
+        email="johndoe@gmail.com",
+        password_hash=create_password_hash("password333"),
         phone_no="9841234569",
     )
 ]
 
 skills: List[SkillData] = [
     SkillData(
-        name="Waterfowl Dance",
-        description="Undodgable dance of the waterfowl, idk bro"
+        name="plumber",
+        description="Pipe fitting, soldering, leak detection, blueprint reading, drainage system installation, and maintenance"
     ),
     SkillData(
-        name="Plumbing",
-        description="Fixin pipes and dat"
+        name="Electrician",
+        description="Wiring installation, circuit troubleshooting, safety regulations, use of electrical tools, and electrical systems maintenance"
     ),
     SkillData(
-        name="Sleepdeprivation",
-        description="Professional all-nighter"
+        name="Carpenter",
+        description="Wood cutting, joinery, furniture making, blueprint reading, polishing and finishing, and furniture repair"
     ),
     SkillData(
-        name="Quacking",
-        description="Quack Quack Motherducker"
+        name="Cook",
+        description="Knife skills, food preparation, cooking techniques, hygiene & safety, food presentation, and menu planning"
     )
 ]
 
@@ -56,20 +56,20 @@ professionals: List[ProfessionalData] = [
     ProfessionalData(
         user_id=0,
         skill_id=2,
-        title="Senior Non-Sleeper",
+        title="Senior Carpenter",
         experience=3,
-        hourly_rate=42,
-        location="Remote",
-        cover_letter="hmm"
+        hourly_rate=50,
+        location="Kathmandu",
+        cover_letter="I am a professional carpenter with 3 years of experience in furniture making and repair. I have worked on various projects and have a good understanding of joinery, wood cutting, and furniture polishing. I am skilled in blueprint reading and can work on custom furniture projects. I am looking for opportunities to work on new projects and expand my skills."
     ),
     ProfessionalData(
         user_id=2,
         skill_id=3,
-        title="Duck",
-        experience=1,
-        hourly_rate=12,
-        location="Pond",
-        cover_letter="Quack Quack"
+        title="Master Cook",
+        experience=8,
+        hourly_rate=100,
+        location="Pokhara",
+        cover_letter="I am a professional cook with 8 years of experience in the culinary industry. I have worked in various restaurants and hotels, specializing in different cuisines. I have a passion for cooking and creating new dishes. I am skilled in knife techniques, food preparation, and menu planning. I am looking for opportunities to showcase my skills and create delicious meals for clients."
     )
 ]
 
@@ -81,7 +81,7 @@ hire: List[HireData] = [
         start_date=datetime.now(),
         end_date=datetime.now() + timedelta(days=7),
         total_hours=40,
-        total_amount=42 * 40
+        total_amount=50 * 40
     )
 ]
 
@@ -91,7 +91,7 @@ reviews: List[ReviewData] = [
         professional=0,
         client=1,
         rating=4,
-        review="Damn"
+        review="The carpenter did a great job on my furniture project. He was professional, skilled, and completed the work on time. I would recommend him to others."
     )
 ]
 
