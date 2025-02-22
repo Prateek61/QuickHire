@@ -1,5 +1,5 @@
-<script >
-  import { onMount } from 'svelte';
+<script>
+	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 
 	let activePath = '';
@@ -10,22 +10,17 @@
 		});
 	});
 
-  
-    import Navbar from '$lib/components/Navbar.svelte';
-  
-  </script>
+	import Navbar from '$lib/components/Navbar.svelte';
+</script>
 
-  <style>
-    :global(body) {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: Cambria, Cochin, Georgia, Times, "Times New Roman", serif;
-    }
-  </style>
-  
-{#if activePath === '/' || activePath === '/about'|| activePath === '/login'}
-  <Navbar />
-{/if}
-  <slot />
-    
+<Navbar />
+<slot></slot>
+
+<style>
+	:global(body) {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+		font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+	}
+</style>

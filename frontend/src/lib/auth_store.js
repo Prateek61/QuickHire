@@ -4,173 +4,170 @@ import { PUBLIC_API_URL } from '$env/static/public';
 
 // Auth store for managing user state
 export const authStore = writable({
-    user: null,
-    token: null,
-    isAuthenticated: false,
-    isAuthenticating: false
-})
+	user: null,
+	token: null,
+	isAuthenticated: false,
+	isAuthenticating: false
+});
 
 // Local storage handling
 function getStoredToken() {
-    if (typeof window !== 'undefined')
-    {
-        return localStorage.getItem('session');
-    }
+	if (typeof window !== 'undefined') {
+		return localStorage.getItem('session');
+	}
 
-    return null;
+	return null;
 }
 
 function setStoredToken(token) {
-    if (typeof window !== 'undefined')
-    {
-        localStorage.setItem('session', token);
-    }
+	if (typeof window !== 'undefined') {
+		localStorage.setItem('session', token);
+	}
 }
 
 function clearStoredToken() {
-    if (typeof window !== 'undefined')
-    {
-        localStorage.removeItem('session');
-    }
+	if (typeof window !== 'undefined') {
+		localStorage.removeItem('session');
+	}
 }
 
 // Create auth utilities with optional fetch parameter
 export function createAuth(customFetch = fetch) {
-    return {
-        async login(username, password) {
-            try {
-                const response = await customFetch(`${PUBLIC_API_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({username, password}),
-                    credentials: 'include'
-                });
-        
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Login failed')
-                }
+	return {
+		async login(username, password) {
+			try {
+				const response = await customFetch(`${PUBLIC_API_URL}/auth/login`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ username, password }),
+					credentials: 'include'
+				});
 
-                const data = await response.json();
-                setStoredToken(data.access_token);
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.detail || 'Login failed');
+				}
 
-                await this.fetchUser(customFetch);
+				const data = await response.json();
+				setStoredToken(data.access_token);
 
-                return { success: true };
-            } catch (error) {
-                return { success: false, error: error.message };
-            }
-        },
+				await this.fetchUser(customFetch);
 
-        async register(userData) {
-            console.log(JSON.stringify(userData))
-            try {
-                const response = await customFetch(`${PUBLIC_API_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(userData),
-                    credentials: 'include'
-                });
+				return { success: true };
+			} catch (error) {
+				return { success: false, error: error.message };
+			}
+		},
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Registration failed');
-                }
+		async register(userData) {
+			console.log(JSON.stringify(userData));
+			try {
+				const response = await customFetch(`${PUBLIC_API_URL}/auth/register`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(userData),
+					credentials: 'include'
+				});
 
-                const data = await response.json();
-                setStoredToken(data.access_token);
-                await this.fetchUser(customFetch);
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.detail || 'Registration failed');
+				}
 
-                return { success: true };
-            } catch (error) {
-                console.error(error)
-                return { success: false, error: error.message };
-            }
-        },
+				const data = await response.json();
+				setStoredToken(data.access_token);
+				await this.fetchUser(customFetch);
 
-        async fetchUser(fetchFn = customFetch) {
-            authStore.update(state => ({ ...state, isAuthenticating: true }));
+				return { success: true };
+			} catch (error) {
+				console.error(error);
+				return { success: false, error: error.message };
+			}
+		},
 
-            try {
-                const token = this.getToken();
-                if (!token) throw new Error('No token available');
+		async fetchUser(fetchFn = customFetch) {
+			authStore.update((state) => ({ ...state, isAuthenticating: true }));
 
-                const response = await fetchFn(`${PUBLIC_API_URL}/auth/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    credentials: 'include'
-                });
+			try {
+				const token = this.getToken();
+				if (!token) throw new Error('No token available');
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch user');
-                }
+				const response = await fetchFn(`${PUBLIC_API_URL}/auth/me`, {
+					headers: {
+						Authorization: `Bearer ${token}`
+					},
+					credentials: 'include'
+				});
 
-                const user = await response.json();
-                authStore.update(state => ({
-                    ...state,
-                    user,
-                    token,
-                    isAuthenticated: true
-                }));
-                
-                authStore.update(state => ({ ...state, isAuthenticating: false }));
-                return user;
-            } catch (error) {
-                authStore.update(state => ({ ...state, isAuthenticating: false }));
-                this.logout();
-                throw error;
-            }
-        },
+				if (!response.ok) {
+					throw new Error('Failed to fetch user');
+				}
 
-        getToken() {
-            return getStoredToken();
-        },
+				const user = await response.json();
+				authStore.update((state) => ({
+					...state,
+					user,
+					token,
+					isAuthenticated: true
+				}));
 
-        async logout() {
-            // clearStoredToken();
+				authStore.update((state) => ({
+					...state,
+					isAuthenticating: false,
+					first_fetch_counter: state.first_fetch_counter + 1
+				}));
+				return user;
+			} catch (error) {
+				authStore.update((state) => ({
+					...state,
+					isAuthenticating: false,
+					first_fetch_counter: state.first_fetch_counter + 1
+				}));
+				this.logout();
+				throw error;
+			}
+		},
 
-            // authStore.update(state => ({
-            //     ...state,
-            //     user: null,
-            //     token: null,
-            //     isAuthenticated: false
-            // }));
+		getToken() {
+			return getStoredToken();
+		},
 
-            // goto('/');
-            console.log("logout called")
-        },
+		async logout() {
+			// clearStoredToken();
 
-        async logoutfr() {
-            clearStoredToken();
+			// authStore.update(state => ({
+			//     ...state,
+			//     user: null,
+			//     token: null,
+			//     isAuthenticated: false
+			// }));
 
-            authStore.update(state => ({
-                ...state,
-                user: null,
-                token: null,
-                isAuthenticated: false
-            }));
+			// goto('/');
+			console.log('logout called');
+		},
 
-            goto('/');
-            console.log("logout fr called")
-        },
+		async logoutfr() {
+			clearStoredToken();
 
-        isLoggedIn() {
-            return !!this.getToken();
-        },
+			authStore.update((state) => ({
+				...state,
+				user: null,
+				token: null,
+				isAuthenticated: false
+			}));
 
-        isAuthenticated() {
-            while (authStore.get().isAuthenticating) {
-                // Wait for authentication to finish
-            }
+			goto('/');
+			console.log('logout fr called');
+		},
 
-            return authStore.get().isAuthenticated;
-        }
-    };
+		isLoggedIn() {
+			return !!this.getToken();
+		}
+	};
 }
 
 // Default instance using window.fetch
@@ -178,10 +175,10 @@ export const auth = createAuth();
 
 // Initialize auth state if token exists and in browser
 if (typeof window !== 'undefined') {
-    const token = getStoredToken();
-    if (token) {
-        auth.fetchUser().catch(() => {
-            auth.logout();
-        });
-    }
+	const token = getStoredToken();
+	if (token) {
+		auth.fetchUser().catch(() => {
+			auth.logout();
+		});
+	}
 }

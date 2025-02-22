@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from ..dependencies import SessionDep, TokenDep, Select, Condition, QueryHelper
+from ..dependencies import SessionDep, TokenDep, Select, Condition, QueryHelper, Statement
 from ..internal.current_user import UserData, UserDep
-from ..models import Professionals, ProfessionalData, Users, UserData, Skills, SkillData
+from ..models import Professionals, ProfessionalData, Users, UserData, Skills, SkillData, Reviews
 from pydantic import BaseModel
 
 from typing import List, Any, Optional, Dict
@@ -37,7 +37,7 @@ def get_professional_query() -> Select:
         Users,
         *Professionals.all_cols("p_"),
         *Skills.all_cols("s_"),
-        *Users.all_cols("u_")
+        *Users.all_cols("u_"),
     ).join(Professionals).join(Skills)
 
 def deserialize_professionals_data(data: List[Dict[str, Any]]) -> List[ProfessionalResponse]:
