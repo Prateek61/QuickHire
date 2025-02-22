@@ -5,22 +5,10 @@
 		PUBLIC_APP_CLOUDINARY_CLOUD_NAME
 	} from '$env/static/public';
 	import profile from '$lib/images/profile.jpg';
-
-	// Mock user data - replace with your API call
-	let user = {
-		username: 'Prateek',
-		email: 'prateekpoudel61@gmail',
-		phone_no: '9841234567',
-		id: 1,
-		first_name: 'Prateek',
-		last_name: 'Poudel',
-		profile_pic_url: null,
-		is_active: true,
-		birthday: null,
-		last_login: '2025-02-22T15:29:43.197570',
-		updated_at: '2025-02-22T15:29:43.197570',
-		created_at: '2025-02-22T15:29:43.197570'
-	};
+	import { authStore } from '$lib/auth_store';
+	
+	let user = $authStore.user;
+	console.log(authStore.user);
 
 	let isEditing = false;
 	let editedUser = { ...user };
@@ -32,6 +20,7 @@
 			day: 'numeric'
 		});
 	};
+
 
 	const handleSubmit = () => {
 		// Implement your update logic here
@@ -154,10 +143,11 @@
 
 							<div class="space-y-4">
 								<div>
-									<label class="block text-sm font-medium text-gray-700">First Name</label>
+									<label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
 									{#if isEditing}
 										<input
 											type="text"
+											id="first_name"
 											bind:value={editedUser.first_name}
 											class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-600 focus:ring-primary-600"
 										/>

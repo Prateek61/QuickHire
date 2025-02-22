@@ -115,10 +115,18 @@ export function createAuth(customFetch = fetch) {
 					isAuthenticated: true
 				}));
 
-				authStore.update((state) => ({ ...state, isAuthenticating: false }));
+				authStore.update((state) => ({
+					...state,
+					isAuthenticating: false,
+					first_fetch_counter: state.first_fetch_counter + 1
+				}));
 				return user;
 			} catch (error) {
-				authStore.update((state) => ({ ...state, isAuthenticating: false }));
+				authStore.update((state) => ({
+					...state,
+					isAuthenticating: false,
+					first_fetch_counter: state.first_fetch_counter + 1
+				}));
 				this.logout();
 				throw error;
 			}
@@ -158,14 +166,6 @@ export function createAuth(customFetch = fetch) {
 
 		isLoggedIn() {
 			return !!this.getToken();
-		},
-
-		isAuthenticated() {
-			while (authStore.get().isAuthenticating) {
-				// Wait for authentication to finish
-			}
-
-			return authStore.get().isAuthenticated;
 		}
 	};
 }

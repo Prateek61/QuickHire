@@ -2,6 +2,8 @@ import { authStore, createAuth } from '$lib/auth_store';
 
 /** @type {import('./$types').LayoutLoad} */
 export const load = async ({ fetch }) => {
+    authStore.update(state => ({ ...state, isAuthenticating: true }));
+
     // Create auth instance with SvelteKit's fetch
     const auth = createAuth(fetch);
     
@@ -9,7 +11,8 @@ export const load = async ({ fetch }) => {
     if (typeof window !== 'undefined') {
         const token = auth.getToken();
         if (token) {
-            try {                
+            try {
+                console.log('Fetching user...');               
                 await auth.fetchUser();
             } catch (error) {
                 // Handle error silently - auth store already handles logout
