@@ -11,6 +11,9 @@ export const load = async () => {
         // Return an action that can be used in the page component
         loginAction: async ({ username, password }) => {
             return await auth.login(username, password);
+        },
+        registerAction: async ({ formData }) => {
+            return await auth.register(formData);
         }
-    };
-};
+    }
+}

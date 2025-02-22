@@ -65,6 +65,7 @@ export function createAuth(customFetch = fetch) {
         },
 
         async register(userData) {
+            console.log(JSON.stringify(userData))
             try {
                 const response = await customFetch(`${PUBLIC_API_URL}/auth/register`, {
                     method: 'POST',
@@ -81,11 +82,12 @@ export function createAuth(customFetch = fetch) {
                 }
 
                 const data = await response.json();
-                setStoredToken(data.token);
+                setStoredToken(data.access_token);
                 await this.fetchUser(customFetch);
 
                 return { success: true };
             } catch (error) {
+                console.error(error)
                 return { success: false, error: error.message };
             }
         },
