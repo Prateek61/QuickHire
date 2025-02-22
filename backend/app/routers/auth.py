@@ -1,14 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Security
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import Optional
 from ..dependencies import SessionDep, TokenDep, Select, Condition, QueryHelper, Statement
 from ..models import Users, UserData
 from ..utils.create_password_hash import create_password_hash, check_password
-from ..utils.jwt import create_jwt_token, verify_jwt_token
-from ..dependencies import TokenDep, security, Security
+from ..utils.jwt import create_jwt_token
 
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(
     prefix="/auth",

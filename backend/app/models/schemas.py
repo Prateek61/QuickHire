@@ -38,7 +38,7 @@ class ProfessionalData(BaseDataClass):
 
 @dataclass
 class SkillData(BaseDataClass):
-    name = str
+    name: str
     id: int = field(default=0)
     description: str = field(default=None)
 
