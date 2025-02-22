@@ -3,10 +3,23 @@
 @tailwind utilities;
 @tailwind variants;
 
+:root {
+	--primary-50: #f0f9ff;
+	--primary-100: #e0f2fe;
+	--primary-200: #bae6fd;
+	--primary-600: #0284c7;
+	--primary-700: #0369a1;
+	--secondary-600: #0f172a;
+}
+
 .nav-link {
-	@apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300;
+	@apply px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 hover:bg-gray-100;
 }
 
 .mobile-nav-link {
-	@apply block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-700 transition-all duration-300;
+	@apply block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100 transition-colors duration-200;
+}
+
+.dropdown-item {
+	@apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150;
 }
