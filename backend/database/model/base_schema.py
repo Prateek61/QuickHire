@@ -191,7 +191,7 @@ class BaseSchema(Schema, ABC, Generic[T], metaclass=ModelSchemaMeta):
     @classmethod
     def col(cls, field_name: str, alias: str = None) -> AsIs:
         """Get fully qualified column name."""
-        return AsIs(f'{cls._table()}.{cls._get_col(field_name)}{' AS ' + alias if alias else ''}')
+        return AsIs(f'{cls._table()}.{cls._get_col(field_name)}{f" AS {alias}" if alias else ""}')
     
     @classmethod
     def all_cols(cls, prefix: str = "") -> List[AsIs]:
