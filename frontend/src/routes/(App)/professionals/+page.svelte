@@ -1,79 +1,22 @@
-<script context="module">
-	export const load = async ({ fetch }) => {
-		const response = await fetch('/api/professionals');
-		const professionals = await response.json();
-		return { props: { professionals } };
-	};
-</script>
-
 <script>
 	// Import necessary components and utilities
 	import { onMount } from 'svelte';
 	import profile from '$lib/images/profile.jpg';
 
+	export let data;
+
+	let professionals = [];
+
 	// Mock data - replace with your actual API call
-	let professionals = [
-		{
-			professional: {
-				user_id: 1,
-				skill_id: 3,
-				title: 'Senior Non-Sleeper',
-				experience: 3,
-				hourly_rate: '42',
-				location: 'Remote',
-				id: 1,
-				cover_letter: 'hmm',
-				is_available: true,
-				updated_at: '2025-02-22T15:29:43.216737',
-				created_at: '2025-02-22T15:29:43.216737'
-			},
-			user: {
-				username: 'Prateek',
-				email: 'prateekpoudel61@gmail',
-				phone_no: '9841234567',
-				id: 1,
-				first_name: 'Prateek',
-				last_name: 'Poudel',
-				profile_pic_url: null,
-				is_active: true
-			},
-			skill: {
-				name: 'Sleepdeprivation',
-				id: 3,
-				description: 'Professional all-nighter'
-			}
-		},
-		{
-			professional: {
-				user_id: 3,
-				skill_id: 4,
-				title: 'Duck',
-				experience: 1,
-				hourly_rate: '12',
-				location: 'Pond',
-				id: 2,
-				cover_letter: 'Quack Quack',
-				is_available: true,
-				updated_at: '2025-02-22T15:29:43.216737',
-				created_at: '2025-02-22T15:29:43.216737'
-			},
-			user: {
-				username: 'Duck',
-				email: 'duck@duckmail.com',
-				phone_no: '9841234569',
-				id: 3,
-				first_name: null,
-				last_name: null,
-				profile_pic_url: null,
-				is_active: true
-			},
-			skill: {
-				name: 'Quacking',
-				id: 4,
-				description: 'Quack Quack Motherducker'
-			}
-		}
-	];
+	if(data.props.ok)
+	{	
+		professionals = data.props.professionals;
+	}
+	else
+	{
+		console.log("Error fetching data");
+		console.error(data.props.error);
+	}
 
 	let searchQuery = '';
 	let selectedSkill = 'all';
