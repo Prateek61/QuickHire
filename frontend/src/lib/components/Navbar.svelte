@@ -2,11 +2,11 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { slide } from 'svelte/transition';
+	import profile from '$lib/images/profile.jpg';
 
 	let isAuthenticated = true;
 	let user = {
-		name: 'John Doe',
-		avatar: '/placeholder.svg'
+		name: 'John Doe'
 	};
 
 	let activePath = '';
@@ -173,7 +173,7 @@
 							class="flex items-center space-x-2 text-gray-600 hover:text-primary-600 focus:outline-none"
 						>
 							<img
-								src={user.avatar || '/placeholder.svg'}
+								src={user.avatar || profile}
 								alt="Profile"
 								class="w-8 h-8 rounded-full border-2 border-primary-200"
 							/>
@@ -273,7 +273,7 @@
 						<div class="px-4 py-2">
 							<div class="flex items-center space-x-3">
 								<img
-									src={user.avatar || '/placeholder.svg'}
+									src={user.avatar || profile}
 									alt="Profile"
 									class="w-10 h-10 rounded-full border-2 border-primary-200"
 								/>
