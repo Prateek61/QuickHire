@@ -1,4 +1,5 @@
 from typing import Annotated, Dict, Any, Generator, Optional
+import os
 
 from pydantic import BaseModel
 from fastapi import Depends, Security
@@ -8,9 +9,42 @@ from fastapi import Header, FastAPI
 from database import *
 import json
 
-def load_config(config_path: str = "config.json") -> Dict[str, Any]:
-    with open(config_path) as f:
-        return json.load(f)
+def get_database_config() -> Dict[str, Any]:
+    # Check for DATABASE_URL first (deployment environment)
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return {"url": database_url}
+    
+    # Try loading from config file (local development)
+    config_path = os.getenv("CONFIG_PATH", "config.json")
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            config = json.load(f)
+            return config["postgres"]
+    
+    # Fallback to environment variables
+    return {
+        "host": os.getenv("POSTGRES_HOST", "localhost"),
+        "port": os.getenv("POSTGRES_PORT", "5432"),
+        "user": os.getenv("POSTGRES_USER", "postgres"),
+        "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+        "database": os.getenv("POSTGRES_DB", "dbms_proj")
+    }
+
+def load_config() -> Dict[str, Any]:
+    # Load from config file if available
+    config_path = os.getenv("CONFIG_PATH", "config.json")
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            return json.load(f)
+    
+    # Fallback to environment variables
+    return {
+        "postgres": get_database_config(),
+        "db_log": os.getenv("DB_LOG", "true").lower() == "true",
+        "jwt_secret": os.getenv("JWT_SECRET", "your-secure-secret-key"),
+        "jwt_expire_minutes": int(os.getenv("JWT_EXPIRE_MINUTES", "30"))
+    }
     
 config: Dict[str, Any] = {}
 engine: DBEngine = None
@@ -19,8 +53,16 @@ engine: DBEngine = None
 async def lifespan(app: FastAPI):
     global engine
     global config
+    
+    # Load main configuration
     config = load_config()
-    engine = DBEngine(config["postgres"], log=config.get("db_log", False))
+    
+    # Initialize database engine with appropriate configuration
+    if "url" in config["postgres"]:
+        engine = DBEngine(url=config["postgres"]["url"], log=config.get("db_log", False))
+    else:
+        engine = DBEngine(config["postgres"], log=config.get("db_log", False))
+    
     yield
     engine.close()
 

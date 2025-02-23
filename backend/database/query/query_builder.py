@@ -195,11 +195,11 @@ class Condition(QueryBuilder):
             return Query.SUBQUERY_PATTERN % name
         else:
             self._query.add_params({name: _format_value(value)})
-            return f"%({name})s"
+            return "%(" + name + ")s"
 
 def _table_str(table: Union[SchemaProtocol, TableAlias]) -> str:
     if isinstance(table, TableAlias):
-        return f"{table.table._table()} AS {table.alias}"
+        return table.table._table() + " AS " + table.alias
     return table._table()
 
 class Select(QueryBuilder):
@@ -214,7 +214,7 @@ class Select(QueryBuilder):
                 {'col': field if isinstance(field, (AsIs, str)) else field._get()}
                 for field in fields
             ])
-            self._query._query = f"SELECT {Query.SUBQUERY_PATTERN % "cols"} FROM %(table)s"
+            self._query._query = "SELECT " + (Query.SUBQUERY_PATTERN % 'cols') + " FROM %(table)s"
             self._query.add_sub_queries({'cols': cols})
         else:
             self._query._query = "SELECT * FROM %(table)s"
@@ -226,7 +226,7 @@ class Select(QueryBuilder):
 
     def where(self, condition: Condition) -> 'Select':
         """Add WHERE clause."""
-        self._query._query += f" WHERE {Query.SUBQUERY_PATTERN % 'where'}"
+        self._query._query += " WHERE " + (Query.SUBQUERY_PATTERN % "where")
         self._query.add_sub_queries({'where': condition.get_query()})
         return self
 
